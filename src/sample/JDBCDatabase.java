@@ -4,11 +4,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public class JDBCUtil {
+public class JDBCDatabase {
     String className, URL, user, password;
     Connection connection;
 
-    public JDBCUtil(String className, String URL, String user, String password) {
+    public JDBCDatabase(String className, String URL, String user, String password) {
         this.className = className;
         this.URL = URL;
         this.user = user;
@@ -37,6 +37,22 @@ public class JDBCUtil {
         System.out.println("Connection successful");
     }
 
+    public ArrayList<String> getColumnNames(Table table) {
+        ArrayList<String> columns = new ArrayList<>();
+        try {
+            Statement st = connection.createStatement();
+
+            ResultSet rs = st.executeQuery("select * from " + table);
+            ResultSetMetaData rsmd = rs.getMetaData();
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                columns.add(rsmd.getColumnName(i));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return columns;
+    }
+
     // Eintraege als Matrix - [0;AnzahlZeilen]
     public ArrayList<ArrayList<String>> getEntries(Table table) {
         ArrayList<ArrayList<String>> entries = new ArrayList<>();
@@ -44,12 +60,13 @@ public class JDBCUtil {
             // Statement erstellen
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("select * from " + table);
+            ResultSetMetaData rsmd = resultSet.getMetaData();
             entries = new ArrayList<>();
 
             // Ergebnis verarbeiten
             while (resultSet.next()) {
                 ArrayList<String> row = new ArrayList<>();          // einzelner Eintrag (Zeile)
-                for (int i = 1; i <= 10; i++) {
+                for (int i = 1; i <= rsmd.getColumnCount(); i++) {
                     row.add(resultSet.getString(i));
                 }
                 entries.add(row);
@@ -61,12 +78,7 @@ public class JDBCUtil {
     }
 
     public void printAllFrom(ArrayList<ArrayList<String>> entries) {
-        for (ArrayList<String> row : entries) {
-            for (String s : row) {
-                System.out.print(s + ", ");
-            }
-            System.out.println();
-        }
+        System.out.println(getAllStringsFrom(entries));
     }
 
     public String getAllStringsFrom(ArrayList<ArrayList<String>> entries) {
