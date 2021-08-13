@@ -1,10 +1,7 @@
 package sample.database;
 
-import sample.Table;
-
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 public class JDBCDatabase {
     String className, URL, user, password;

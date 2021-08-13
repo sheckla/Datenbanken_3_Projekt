@@ -1,4 +1,4 @@
-package sample.graphics;
+package sample.ui;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -6,7 +6,6 @@ import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
@@ -15,9 +14,8 @@ import javafx.scene.text.Text;
 import sample.database.DataMatrix;
 import sample.database.DataTextFieldNode;
 import sample.database.JDBCDatabase;
-import sample.Table;
+import sample.database.Table;
 
-import javax.xml.crypto.Data;
 import java.util.ArrayList;
 
 // TODO anzahl maximaler angezeigter einträge

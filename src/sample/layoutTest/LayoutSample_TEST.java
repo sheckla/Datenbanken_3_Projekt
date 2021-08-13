@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package sample;
+package sample.layoutTest;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
