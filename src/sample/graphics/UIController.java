@@ -12,16 +12,32 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import sample.JDBCDatabase;
+import sample.database.DataMatrix;
+import sample.database.DataTextFieldNode;
+import sample.database.JDBCDatabase;
 import sample.Table;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 
+// TODO anzahl maximaler angezeigter einträge
+// TODO geänderte werte markieren und bei wechsel fragen ob die veränderung verworfen werden soll
+
 public class UIController {
-    BorderPane border;
+    BorderPane border; // main UI element
+    Label currentSelectedTable = new Label("Default");
+    Label currentStatement = new Label("Default");
+
+    ListView dataMatrixListView = new ListView(); // TODO slider anpassen
+    DataMatrix dataMatrix; // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
+    JDBCDatabase util;
     Table table;
+    boolean newEntryActive = false;
 
     public UIController() {
+        util = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
+                "ojokramer", "g4Tbb3Vn0");
+        dataMatrix = new DataMatrix();
     }
 
     public BorderPane createUI() {
@@ -31,7 +47,6 @@ public class UIController {
         HBox hbox = createTopNavigation();
         border.setTop(hbox);
         border.setLeft(createLeftNavigation());
-        border.setCenter(createDatabaseView());
         border.setRight(createRightNavigation());
         border.setBottom(createBottomNavigation());
         return border;
@@ -39,6 +54,62 @@ public class UIController {
 
     public void changeTable(Table table) {
         this.table = table;
+        currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected")); // TODO zentralisieren mit Zeitanzeige
+        pullData();
+        border.setCenter(createDatabaseView());
+    }
+
+    // updated die dataMatrix
+    private void refreshDatabaseView() {
+        border.setCenter(createDatabaseView());
+    }
+
+    private VBox createDatabaseView() {
+
+        dataMatrixListView = new ListView(); // TODO slider anpassen, optimieren (wird zu oft ausgeführt)
+        dataMatrixListView.setPrefHeight(2160);
+        dataMatrixListView.setPrefWidth(4096);
+        VBox vbox = new VBox();
+        vbox.setPadding(new Insets(10)); // Set all sides to 10
+        vbox.setSpacing(8);              // Gap between nodes
+
+        Text title = new Text("Daten");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        vbox.getChildren().add(title);
+
+        if (table != null) {
+            for (int i = 0; i < dataMatrix.size(); i++) {
+                dataMatrixListView.getItems().add(createDataRow(dataMatrix.getNodeEntry(i)));
+            }
+            vbox.getChildren().add(dataMatrixListView);
+        }
+
+        return vbox;
+    }
+
+    // TODO Varchar constraints für charlimit
+    private GridPane createDataRow(ArrayList<DataTextFieldNode> entry) {
+        GridPane root = new GridPane();
+        int i = 0;
+        for (DataTextFieldNode tf : entry) {
+            root.setRowIndex(tf, 0);       // Nur nutwendig für GridPane
+            root.setColumnIndex(tf, i++);        // ^
+            root.getChildren().add(tf);
+        }
+        return root;
+    }
+
+    private void pullData() {
+        dataMatrix.clear();
+        if (table != null) {
+            util.getConnection();
+            dataMatrix.initializeColumnNames(util.getColumnNames(this.table));
+            ArrayList<ArrayList<String>> eintraege = util.getEntries(this.table);
+            int rowIndex = 1;
+            for (ArrayList<String> entry : util.getEntries(this.table)) {
+                dataMatrix.addEntry(entry, rowIndex++);
+            }
+        }
     }
 
     private HBox createTopNavigation() {
@@ -46,16 +117,13 @@ public class UIController {
         hbox.setPadding(new Insets(15, 12, 15, 12));
         hbox.setSpacing(10);   // Gap between nodes
         hbox.setStyle("-fx-background-color: #FFFFFF;");
-        Label selected = new Label("Default");
 
         Button buttonAufgabe = new Button("Aufgaben");
         buttonAufgabe.setPrefSize(100, 20);
         buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                table = Table.AUFGABE;
-                selected.setText(replaceUmlaute(table.toString() + " is selected"));
-                border.setCenter(createDatabaseView());
+                changeTable(Table.AUFGABE);
             }
         });
 
@@ -64,9 +132,7 @@ public class UIController {
         buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                table = Table.PERSONAL;
-                selected.setText(replaceUmlaute(table.toString() + " is selected"));
-                border.setCenter(createDatabaseView());
+                changeTable(Table.PERSONAL);
             }
         });
 
@@ -75,9 +141,7 @@ public class UIController {
         buttonMaschine.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                table = Table.MASCHINE;
-                selected.setText(replaceUmlaute(table.toString() + " is selected"));
-                border.setCenter(createDatabaseView());
+                changeTable(Table.MASCHINE);
             }
         });
 
@@ -87,22 +151,18 @@ public class UIController {
         inventarComboBox.valueProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                selected.setText(replaceUmlaute(inventarComboBox.getValue().toString()) + " is selected");
-                table = Table.valueOf(replaceUmlaute(inventarComboBox.getValue().toString()));
-                border.setCenter(createDatabaseView());
+                changeTable(Table.valueOf(replaceUmlaute(inventarComboBox.getValue().toString())));
             }
         });
         TilePane tilePane = new TilePane(inventarComboBox);
         inventarComboBox.getSelectionModel().selectFirst();
         inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
             if (!isShowing) {
-                selected.setText(replaceUmlaute(inventarComboBox.getValue().toString()) + " is selected");
-                table = Table.valueOf(replaceUmlaute(inventarComboBox.getValue().toString()));
-                border.setCenter(createDatabaseView());
+                changeTable(Table.valueOf(replaceUmlaute(inventarComboBox.getValue().toString())));
             }
         });
 
-        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, selected);
+        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, currentSelectedTable);
         return hbox;
     }
 
@@ -130,94 +190,6 @@ public class UIController {
         return vbox;
     }
 
-    private VBox createDatabaseView() {
-        ListView textFieldListView = new ListView(); // TODO slider anpassen
-        textFieldListView.setPrefHeight(2160);
-        textFieldListView.setPrefWidth(4096);
-        VBox vbox = new VBox();
-        vbox.setPadding(new Insets(10)); // Set all sides to 10
-        vbox.setSpacing(8);              // Gap between nodes
-
-        Text title = new Text("Daten");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        vbox.getChildren().add(title);
-
-        if (table != null) {
-            JDBCDatabase util = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
-                    "ojokramer", "g4Tbb3Vn0");
-            util.getConnection();
-            util.printAllFrom(util.getEntries(this.table));
-
-            ArrayList<ArrayList<String>> eintraege = util.getEntries(this.table);
-            for (ArrayList<String> entry : eintraege) {
-                String row = "";
-                for (String s : entry) {
-                    row += s + ", ";
-                }
-            }
-
-            textFieldListView.getItems().add(createColumnNames(util.getColumnNames(this.table)));
-            for (int i = 0; i < eintraege.size(); i++) {
-                textFieldListView.getItems().add(createRow(eintraege.get(i), i));
-            }
-            vbox.getChildren().add(textFieldListView);
-        }
-        return vbox;
-    }
-
-    private GridPane createColumnNames(ArrayList<String> columns) {
-        GridPane root = new GridPane();
-        for (int x = 0; x < columns.size(); x++) {
-
-            // Create a new TextField in each Iteration
-            TextField tf = new TextField();
-            tf.setPrefHeight(20);
-            tf.setPrefWidth(150);
-            tf.setAlignment(Pos.CENTER);
-            tf.setEditable(false);
-            tf.setStyle("-fx-font-weight: bold");
-            tf.setText(columns.get(x));
-            tf.textProperty().addListener(new ChangeListener<String>() {
-                @Override
-                public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                    //tf.setPrefWidth(tf.getWidth() + 2); //TODO dynamische verbreitung je nach textlänge
-                }
-            });
-
-            // Iterate the Index using the loops
-            root.setRowIndex(tf, 0);
-            root.setColumnIndex(tf, x);
-            root.getChildren().add(tf);
-        }
-        return root;
-    }
-
-    // TODO Varchar constraints für charlimit
-    private GridPane createRow(ArrayList<String> row, int index) {
-        GridPane root = new GridPane();
-
-        for (int x = 1; x <= row.size(); x++) {
-            TextField tf = new TextField();
-            tf.setPrefHeight(20);
-            tf.setPrefWidth(150);
-            tf.setAlignment(Pos.CENTER);
-            tf.setEditable(true);
-            tf.setText(row.get(x - 1));
-            tf.textProperty().addListener(new ChangeListener<String>() {
-                @Override
-                public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                    //tf.setPrefWidth(tf.getWidth() + 2); //TODO dynamische verbreitung je nach textlänge
-                }
-            });
-
-            // Iterate the Index using the loops
-            root.setRowIndex(tf, index);
-            root.setColumnIndex(tf, x);
-            root.getChildren().add(tf);
-        }
-        return root;
-    }
-
     private VBox createRightNavigation() {
         return createLeftNavigation();
     }
@@ -228,16 +200,57 @@ public class UIController {
         hbox.setSpacing(10);   // Gap between nodes
         hbox.setStyle("-fx-background-color: #FFFFFF;");
 
-        Button buttonMaschinen = new Button("Einfügen");
-        buttonMaschinen.setPrefSize(100, 20);
+        Button buttonEinfuegen = new Button("Neuer Eintrag");
+        buttonEinfuegen.setPrefSize(100, 20);
+        buttonEinfuegen.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                //util.insertTest(Table.INVENTARGEGENSTAND, 1);
+                if (!newEntryActive) {
+                    newEntryActive = false; // TODO Designentscheidung
+                    System.out.println(util.insertStatementColumns(table));
+                    dataMatrix.addEmptyEntry();
+                    printMatrix();
+                    refreshDatabaseView();
+                }
+            }
+        });
 
-        Button buttonSilos = new Button("Löschen");
-        buttonSilos.setPrefSize(100, 20);
+        Button buttonCommit = new Button("Commit!");
+        buttonCommit.setPrefSize(100, 20);
+        buttonCommit.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                // TODO zur datenbank pushen
+                System.out.println(dataMatrix.getLatestEntry().get(0));
+                System.out.println("size" + dataMatrix.size());
+                String val = dataMatrix.getLatestEntry().get(0);
+                util.insert(table, val);
+                currentStatement.setText(util.getInsertStatement(table, val));
+            }
+        });
 
-        Button buttonVorraete = new Button("Aktualisieren");
-        buttonVorraete.setPrefSize(100, 20);
+        Button buttonLoeschen = new Button("Löschen");
+        buttonLoeschen.setPrefSize(100, 20);
+        buttonLoeschen.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                dataMatrix.removeEntry(dataMatrix.size() - 1); // TODO nur visuell! noch keine datenbankveränderung
+                refreshDatabaseView();
+            }
+        });
 
-        hbox.getChildren().addAll(buttonMaschinen, buttonSilos, buttonVorraete);
+        Button buttonAktualisieren = new Button("Aktualisieren");
+        buttonAktualisieren.setPrefSize(100, 20);
+        buttonAktualisieren.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                pullData();
+                refreshDatabaseView();
+            }
+        });
+
+        hbox.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren, currentStatement);
 
         return hbox;
     }
@@ -251,4 +264,14 @@ public class UIController {
         s = s.toUpperCase();
         return s;
     }
+
+    private void printMatrix() {
+        for (ArrayList<String> arr : dataMatrix.getStringMatrix()) {
+            for (String s : arr) {
+                System.out.print(s + ", ");
+            }
+            System.out.println();
+        }
+    }
+
 }

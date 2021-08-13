@@ -1,4 +1,6 @@
-package sample;
+package sample.database;
+
+import sample.Table;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -61,6 +63,7 @@ public class JDBCDatabase {
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("select * from " + table);
             ResultSetMetaData rsmd = resultSet.getMetaData();
+
             entries = new ArrayList<>();
 
             // Ergebnis verarbeiten
@@ -77,6 +80,29 @@ public class JDBCDatabase {
         return entries;
     }
 
+    public int getEntrySize(Table table) {
+        ArrayList<ArrayList<String>> entries = new ArrayList<>();
+        int totalEntries = 0;
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("select * from " + table);
+            ResultSetMetaData rsmd = resultSet.getMetaData();
+
+            entries = new ArrayList<>();
+
+            while (resultSet.next()) {
+                totalEntries++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return totalEntries;
+    }
+
+    public int getColumnSize(Table table) {
+        return getColumnNames(table).size();
+    }
+
     public void printAllFrom(ArrayList<ArrayList<String>> entries) {
         System.out.println(getAllStringsFrom(entries));
     }
@@ -90,6 +116,38 @@ public class JDBCDatabase {
             result += "\n";
         }
         return result;
+    }
+
+    public String getInsertStatement(Table table, String val) {
+        return "INSERT INTO " + table.toString() + " " + insertStatementColumns(table) + " VAlUES " +
+                insertStatementValues(val);
+    }
+
+    public void insert(Table table, String val) {
+        try {
+            Statement st = connection.createStatement();
+            String sql = "INSERT INTO " + table.toString() + " " + insertStatementColumns(table) + " VAlUES " +
+                    insertStatementValues(val);
+            System.out.println(sql);
+            st.executeQuery(sql);
+        } catch (Exception e) {
+            System.out.println("Error");
+            e.printStackTrace();
+        }
+    }
+
+    public String insertStatementColumns(Table table) {
+        String s = "(";
+        ArrayList<String> columns = getColumnNames(table);
+        for (int i = 0; i < columns.size(); i++) {
+            s+= columns.get(i);
+            if (i != columns.size() - 1) s += ", ";
+        }
+        return s + ")";
+    }
+
+    public String insertStatementValues(String s) {
+        return "(" + s + ")";
     }
 }
 
