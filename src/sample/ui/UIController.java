@@ -18,24 +18,38 @@ import sample.database.Table;
 
 import java.util.ArrayList;
 
-// TODO anzahl maximaler angezeigter einträge
+// TODO anzahl maximaler angezeigter einträge, seitenanzeige per Intervall (50, 25, 10)
 // TODO geänderte werte markieren und bei wechsel fragen ob die veränderung verworfen werden soll
 
 public class UIController {
-    BorderPane border; // main UI element
-    Label currentSelectedTable = new Label("Default");
-    Label currentStatement = new Label("Default");
+    String view = "" +
+            "select Typ, Marke, Modell " +
+            "from Maschine";
 
-    ListView dataMatrixListView = new ListView(); // TODO slider anpassen
-    DataMatrix dataMatrix; // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
+    BorderPane border; // main UI element
+    Label currentSelectedTable = new Label("");
+    Label currentStatement = new Label("");
+    Label debug = new Label("");
+    private String lastKey = "";
+
+    // TODO textfield -> row anzeigen per col/row
+    ListView<GridPane> dataMatrixListView = new ListView<>(); // TODO slider anpassen
+    DataMatrix entries;   // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
+    DataMatrix deletedEntries;
+    DataMatrix changedEntries;
+    int newEntriesIndex;        // neue eintraege sind ab >= pulledEntries.size()
+
     JDBCDatabase util;
     Table table;
-    boolean newEntryActive = false;
 
     public UIController() {
         util = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
                 "ojokramer", "g4Tbb3Vn0");
-        dataMatrix = new DataMatrix();
+        entries = new DataMatrix();
+        deletedEntries = new DataMatrix();
+        changedEntries = new DataMatrix();
+
+
     }
 
     public BorderPane createUI() {
@@ -57,12 +71,15 @@ public class UIController {
         border.setCenter(createDatabaseView());
     }
 
-    // updated die dataMatrix
     private void refreshDatabaseView() {
+        currentStatement.setText("");
+        debug.setText(dataMatrixListView.getSelectionModel().getSelectedIndex() + "");
         border.setCenter(createDatabaseView());
+        System.out.println(util.createView(view));
     }
 
     private VBox createDatabaseView() {
+        System.out.println("PRIMARY KEYS: " + util.getKeys(table));
 
         dataMatrixListView = new ListView(); // TODO slider anpassen, optimieren (wird zu oft ausgeführt)
         dataMatrixListView.setPrefHeight(2160);
@@ -76,12 +93,11 @@ public class UIController {
         vbox.getChildren().add(title);
 
         if (table != null) {
-            for (int i = 0; i < dataMatrix.size(); i++) {
-                dataMatrixListView.getItems().add(createDataRow(dataMatrix.getNodeEntry(i)));
+            for (int i = 0; i < entries.size(); i++) {
+                dataMatrixListView.getItems().add(createDataRow(entries.getNodeEntry(i)));
             }
             vbox.getChildren().add(dataMatrixListView);
         }
-
         return vbox;
     }
 
@@ -90,23 +106,30 @@ public class UIController {
         GridPane root = new GridPane();
         int i = 0;
         for (DataTextFieldNode tf : entry) {
-            root.setRowIndex(tf, 0);       // Nur nutwendig für GridPane
-            root.setColumnIndex(tf, i++);        // ^
+            root.setRowIndex(tf, tf.getRow());           // Nur nutwendig für GridPane
+            root.setColumnIndex(tf, tf.getCol());        // ^
             root.getChildren().add(tf);
         }
         return root;
     }
 
     private void pullData() {
-        dataMatrix.clear();
+        entries.clear();
+        deletedEntries.clear();
+        changedEntries.clear();
+
         if (table != null) {
             util.getConnection();
-            dataMatrix.initializeColumnNames(util.getColumnNames(this.table));
+            entries.initializeColumnNames(util.getColumnNames(this.table));
             ArrayList<ArrayList<String>> eintraege = util.getEntries(this.table);
-            int rowIndex = 1;
+
+            int row = 1;
+            ArrayList<Boolean> nullables = util.getNullables(this.table);
             for (ArrayList<String> entry : util.getEntries(this.table)) {
-                dataMatrix.addEntry(entry, rowIndex++);
+                entries.addEntry(entry, row++);
+                entries.markNullables(nullables, row - 1);
             }
+            newEntriesIndex = entries.size();
         }
     }
 
@@ -192,7 +215,11 @@ public class UIController {
         return createLeftNavigation();
     }
 
-    private HBox createBottomNavigation() {
+    private VBox createBottomNavigation() {
+        VBox root = new VBox();
+        root.setSpacing(8);
+        root.setPadding(new Insets(15, 12, 15, 12));
+
         HBox hbox = new HBox();
         hbox.setPadding(new Insets(15, 12, 15, 12));
         hbox.setSpacing(10);   // Gap between nodes
@@ -203,14 +230,19 @@ public class UIController {
         buttonEinfuegen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                //util.insertTest(Table.INVENTARGEGENSTAND, 1);
-                if (!newEntryActive) {
-                    newEntryActive = false; // TODO Designentscheidung
-                    System.out.println(util.insertStatementColumns(table));
-                    dataMatrix.addEmptyEntry();
-                    printMatrix();
-                    refreshDatabaseView();
+                lastKey = entries.getLatestEntry().get(0);
+                // TODO neuer eintrag automatische werte für z.B InventarNr, Erstelldatum etc.
+                // TODO immer leeres feld, onbuttonlistener - ENTER
+                // TODO höchsten key anders pullen - sortiert
+                entries.addEmptyEntry(util.getNullables(table), util.getColumnSize(table));
+                try {
+                    entries.getNodeEntry(entries.size() - 1).get(0).setText("" + (1 + Integer.parseInt(lastKey)));
+                    entries.getNodeEntry(entries.size()-1).get(0).setChanged(false);
+                } catch (NumberFormatException e) {
+                    System.out.println("Key not a number");
                 }
+                //printMatrix();
+                refreshDatabaseView();
             }
         });
 
@@ -220,11 +252,24 @@ public class UIController {
             @Override
             public void handle(ActionEvent event) {
                 // TODO zur datenbank pushen
-                System.out.println(dataMatrix.getLatestEntry().get(0));
-                System.out.println("size" + dataMatrix.size());
-                String val = dataMatrix.getLatestEntry().get(0);
-                util.insert(table, val);
-                currentStatement.setText(util.getInsertStatement(table, val));
+                // TODO Commit texte
+                for (int i = newEntriesIndex; i < entries.size(); i++) {
+                    //System.out.println("size" + (entries.size() - newEntriesIndex));
+                    String insertResultText = util.insert(table, entries.getEntry(i));
+                    if (!insertResultText.equals("")) currentStatement.setText(insertResultText);
+                    currentStatement.setText("Commit erfolgreich!");
+                    if (!insertResultText.equals("")) currentStatement.setText(insertResultText);
+                }
+
+                for (int i = 0; i < deletedEntries.size(); i++) {
+                    String val = deletedEntries.getVal(0, i);
+                    util.delete(table, val);
+                }
+
+                locateChangedEntries();
+                for (Integer i : locateChangedEntries()) {
+                    System.out.println(util.update(table, entries.getInitialEntry(i), entries.getEntry(i)));
+                }
             }
         });
 
@@ -233,7 +278,9 @@ public class UIController {
         buttonLoeschen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                dataMatrix.removeEntry(dataMatrix.size() - 1); // TODO nur visuell! noch keine datenbankveränderung
+                int index = dataMatrixListView.getSelectionModel().getSelectedIndex();
+                deletedEntries.addEntry(entries.getEntry(index), deletedEntries.size());
+                entries.removeEntry(index);
                 refreshDatabaseView();
             }
         });
@@ -248,10 +295,27 @@ public class UIController {
             }
         });
 
-        hbox.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren, currentStatement);
+        hbox.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren);
 
-        return hbox;
+        root.getChildren().add(hbox);
+        //currentStatement.setStyle("-fx-text-box-border: #B22222; -fx-focus-color: #B22222;");
+        root.getChildren().add(currentStatement);
+        root.getChildren().add(debug);
+        return root;
     }
+
+     private ArrayList<Integer> locateChangedEntries() {
+        ArrayList<Integer> changed = new ArrayList<>();
+        for (int i = 1; i < entries.size(); i++) {
+            for (DataTextFieldNode node : entries.getNodeEntry(i)) {
+                if (node.changed()) {
+                    changed.add(i);
+                    break;
+                }
+            }
+        }
+        return changed;
+     }
 
     private String replaceUmlaute(String s) {
         s = s.toLowerCase();
@@ -264,7 +328,7 @@ public class UIController {
     }
 
     private void printMatrix() {
-        for (ArrayList<String> arr : dataMatrix.getStringMatrix()) {
+        for (ArrayList<String> arr : entries.getStringMatrix()) {
             for (String s : arr) {
                 System.out.print(s + ", ");
             }

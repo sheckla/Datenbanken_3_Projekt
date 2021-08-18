@@ -36,6 +36,8 @@ public class JDBCDatabase {
         System.out.println("Connection successful");
     }
 
+
+
     public ArrayList<String> getColumnNames(Table table) {
         ArrayList<String> columns = new ArrayList<>();
         try {
@@ -59,6 +61,30 @@ public class JDBCDatabase {
             // Statement erstellen
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("select * from " + table);
+            ResultSetMetaData rsmd = resultSet.getMetaData();
+
+            entries = new ArrayList<>();
+
+            // Ergebnis verarbeiten
+            while (resultSet.next()) {
+                ArrayList<String> row = new ArrayList<>();          // einzelner Eintrag (Zeile)
+                for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                    row.add(resultSet.getString(i));
+                }
+                entries.add(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return entries;
+    }
+
+    public ArrayList<ArrayList<String>> createView(String view) {
+        ArrayList<ArrayList<String>> entries = new ArrayList<>();
+        try {
+            // Statement erstellen
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(view);
             ResultSetMetaData rsmd = resultSet.getMetaData();
 
             entries = new ArrayList<>();
@@ -115,59 +141,135 @@ public class JDBCDatabase {
         return result;
     }
 
-    public String getInsertStatement(Table table, String val) {
-        return "INSERT INTO " + table.toString() + " " + insertStatementColumns(table) + " VAlUES " +
-                insertStatementValues(val);
+    public String getInsertStatement(Table table, ArrayList<String> vals) {
+        return "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
+                valueStatement(vals);
     }
 
-    public void insert(Table table, String val) {
+    public String update(Table table, ArrayList<String> oldVals, ArrayList<String> newVals) {
         try {
             Statement st = connection.createStatement();
-            String sql = "INSERT INTO " + table.toString() + " " + insertStatementColumns(table) + " VAlUES " +
-                    insertStatementValues(val);
+            String primaryKey = getColumnNames(table).get(0);
+            String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table), newVals) + " WHERE " +
+                    whereStatement(table, oldVals);
             System.out.println(sql);
             st.executeQuery(sql);
         } catch (Exception e) {
-            System.out.println("Error");
-            e.printStackTrace();
+            return exceptionMessageHandle(e);
         }
+        return "";
     }
 
-    public String insertStatementColumns(Table table) {
+    public String delete(Table table, String val) {
+        try {
+            Statement st = connection.createStatement();
+            String primaryKey = getColumnNames(table).get(0);
+            String sql = "DELETE FROM " + table.toString() + " WHERE " + primaryKey + " = '" + val + "'";
+            System.out.println(sql);
+            st.executeQuery(sql);
+        } catch (Exception e) {
+            return exceptionMessageHandle(e);
+        }
+        return "";
+    }
+
+    public String insert(Table table, ArrayList<String> vals) {
+        try {
+            Statement st = connection.createStatement();
+            String sql = "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
+                    valueStatement(vals);
+            System.out.println(sql);
+            st.executeQuery(sql);
+        } catch (Exception e) {
+            return exceptionMessageHandle(e);
+        }
+        return "";
+    }
+
+    public String columnStatement(Table table) {
         String s = "(";
         ArrayList<String> columns = getColumnNames(table);
         for (int i = 0; i < columns.size(); i++) {
-            s+= columns.get(i);
+            s += columns.get(i);
             if (i != columns.size() - 1) s += ", ";
         }
         return s + ")";
     }
 
-    public String insertStatementValues(String s) {
-        return "(" + s + ")";
+    public String valueStatement(ArrayList<String> vals) {
+        String s = "(";
+        for (int i = 0; i < vals.size(); i++) {
+            if (!vals.get(i).equals("")) {
+                s += "'" + vals.get(i) + "'";
+            } else {
+                s += "NULL";
+            }
+            if (i != vals.size() - 1) s += ", ";
+        }
+        return s + ")";
+    }
+
+    public String setStatement(ArrayList<String> columns, ArrayList<String> vals) {
+        String s = "";
+        for (int i = 0; i < vals.size(); i++) {
+            s += columns.get(i) + " = '" + vals.get(i) + "'";
+            if (i != vals.size() - 1) s += ", ";
+        }
+        return s;
+    }
+
+    public String whereStatement(Table table, ArrayList<String> vals) {
+        String s = "";
+        ArrayList<String> keys= getKeys(table);
+        ArrayList<String> columns = getColumnNames(table);
+        for (int i = 0; i < vals.size(); i++) {
+            if (keys.get(i).equals(columns.get(i))) {
+                s += keys.get(i) + " = '" + vals.get(i) + "'";
+            }
+        }
+        return s;
+    }
+
+    public String exceptionMessageHandle(Exception e) {
+        System.out.println(e.getMessage());
+        if (e instanceof SQLIntegrityConstraintViolationException) {
+            return "Ein Constraint wurde verletzt!";
+        }
+        return e.getMessage().substring(11);
+    }
+
+    public ArrayList<String> getKeys(Table table) {
+        ArrayList<String> keys = new ArrayList<>();
+        try {
+            Statement st = connection.createStatement();
+            DatabaseMetaData dm = connection.getMetaData();
+            ResultSet rs = dm.getPrimaryKeys(null, null, table.toString().toUpperCase());
+            int i = 0;
+            while (rs.next()) {
+                keys.add(rs.getString("COLUMN_NAME"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return keys;
+    }
+
+    public ArrayList<Boolean> getNullables(Table table) {
+        ArrayList<Boolean> nullables = new ArrayList<>();
+        try {
+            Statement st = connection.createStatement();
+            ResultSet rs = st.executeQuery("SELECT * FROM " + table.toString());
+            ResultSetMetaData rsmd = rs.getMetaData();
+            for (int i = 1; i <= getColumnSize(table); i++) {
+                if (rsmd.isNullable(i) == 1) {
+                    nullables.add(true);
+                } else {
+                    nullables.add(false);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return nullables;
     }
 }
-
-//
-//            PreparedStatement preparedStatement = con.prepareStatement("select gehalt from angestellter where gehalt > ?");
-//            preparedStatement.setInt(1, 40000);
-//            resultSet = preparedStatement.executeQuery();
-//
-//            ResultSetMetaData metaData1 = resultSet.getMetaData();
-//            metaData1.getColumnCount();
-//
-//
-//            // Ergebnis verarbeiten
-//            while (resultSet.next()) {
-//                System.out.println(resultSet.getInt("gehalt"));
-//            }
-//
-//            DatabaseMetaData metaData = con.getMetaData();
-//            System.out.println(metaData.getDatabaseProductName());
-//            System.out.println(metaData.getDefaultTransactionIsolation());
-//            con.setAutoCommit(false);
-//
-//            resultSet.close();
-//            statement.close();
-//            preparedStatement.close();
-//            con.close();

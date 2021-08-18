@@ -1,12 +1,5 @@
 package sample.database;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.geometry.Pos;
-import javafx.scene.control.TextField;
-
-import javax.xml.crypto.Data;
-import javax.xml.soap.Text;
 import java.util.ArrayList;
 
 public class DataMatrix {
@@ -15,7 +8,7 @@ public class DataMatrix {
     public DataMatrix() {
         matrix = new ArrayList<>();
     }
-    
+
     public void initializeColumnNames(ArrayList<String> arr) {
         ArrayList<DataTextFieldNode> entry = new ArrayList<>();
         int colIndex = 0;
@@ -39,8 +32,8 @@ public class DataMatrix {
 
     public ArrayList<String> getLatestEntry() {
         ArrayList<String> entry = new ArrayList<>();
-        for (int i = 0; i < matrix.get(matrix.size()-1).size(); i++) {
-            entry.add(matrix.get(matrix.size()-1).get(i).getText());
+        for (int i = 0; i < matrix.get(matrix.size() - 1).size(); i++) {
+            entry.add(matrix.get(matrix.size() - 1).get(i).getText());
         }
         return entry;
     }
@@ -49,10 +42,12 @@ public class DataMatrix {
         ArrayList<DataTextFieldNode> textFields = new ArrayList<>();
         int col = 0;
         for (String s : arr) {
-            DataTextFieldNode tf = new DataTextFieldNode(col++,row);
+            DataTextFieldNode tf = new DataTextFieldNode(col++, row);
             tf.setText(s);
+            tf.initialVal = s;
             tf.setEditable(true);
             textFields.add(tf);
+            tf.setChanged(false);
         }
         matrix.add(textFields);
     }
@@ -73,13 +68,15 @@ public class DataMatrix {
         return stringMatrix;
     }
 
-    public void addEmptyEntry() {
+    public void addEmptyEntry(ArrayList<Boolean> nullables, int size) {
         ArrayList<DataTextFieldNode> entry = new ArrayList<>();
-        for (int i = 0; i < matrix.get(0).size(); i++) {
-            DataTextFieldNode tf = new DataTextFieldNode(matrix.size(), i);
+        for (int i = 0; i < size; i++) {
+            DataTextFieldNode tf = new DataTextFieldNode(i, matrix.size());
             entry.add(tf);
+            tf.setChanged(false);
         }
         matrix.add(entry);
+        markNullables(nullables, matrix.size()-1);
     }
 
     public String getVal(int col, int row) {
@@ -106,7 +103,29 @@ public class DataMatrix {
         return matrix.get(row);
     }
 
-    public int size() {return matrix.size();}
+    public void markNullables(ArrayList<Boolean> nullables, int row) {
+        for (int i = 0; i < matrix.get(row).size(); i++) {
+            if (!nullables.get(i)) {
+                DataTextFieldNode node = matrix.get(row).get(i);
+                node.setNullable(true);
+                if (node.getText().equals("")) node.mark();
+            }
+        }
+    }
 
-    public void clear() {matrix.clear();}
+    public ArrayList<String> getInitialEntry(int row) {
+        ArrayList<String> entry = new ArrayList<>();
+        for (DataTextFieldNode node : matrix.get(row)) {
+            entry.add(node.initialVal);
+        }
+        return entry;
+    }
+
+    public int size() {
+        return matrix.size();
+    }
+
+    public void clear() {
+        matrix.clear();
+    }
 }
