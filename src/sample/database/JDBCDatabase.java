@@ -38,7 +38,7 @@ public class JDBCDatabase {
 
 
 
-    public ArrayList<String> getColumnNames(Table table) {
+    public ArrayList<String> getColumnNames(String table) {
         ArrayList<String> columns = new ArrayList<>();
         try {
             Statement st = connection.createStatement();
@@ -55,7 +55,7 @@ public class JDBCDatabase {
     }
 
     // Eintraege als Matrix - [0;AnzahlZeilen]
-    public ArrayList<ArrayList<String>> getEntries(Table table) {
+    public ArrayList<ArrayList<String>> getEntries(String table) {
         ArrayList<ArrayList<String>> entries = new ArrayList<>();
         try {
             // Statement erstellen
@@ -69,7 +69,12 @@ public class JDBCDatabase {
             while (resultSet.next()) {
                 ArrayList<String> row = new ArrayList<>();          // einzelner Eintrag (Zeile)
                 for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-                    row.add(resultSet.getString(i));
+                    String val = resultSet.getString(i);
+                    if (val == null) {
+                        row.add("");
+                    } else {
+                        row.add(val);
+                    }
                 }
                 entries.add(row);
             }
@@ -79,31 +84,7 @@ public class JDBCDatabase {
         return entries;
     }
 
-    public ArrayList<ArrayList<String>> createView(String view) {
-        ArrayList<ArrayList<String>> entries = new ArrayList<>();
-        try {
-            // Statement erstellen
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(view);
-            ResultSetMetaData rsmd = resultSet.getMetaData();
-
-            entries = new ArrayList<>();
-
-            // Ergebnis verarbeiten
-            while (resultSet.next()) {
-                ArrayList<String> row = new ArrayList<>();          // einzelner Eintrag (Zeile)
-                for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-                    row.add(resultSet.getString(i));
-                }
-                entries.add(row);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return entries;
-    }
-
-    public int getEntrySize(Table table) {
+    public int getEntrySize(String table) {
         ArrayList<ArrayList<String>> entries = new ArrayList<>();
         int totalEntries = 0;
         try {
@@ -122,7 +103,7 @@ public class JDBCDatabase {
         return totalEntries;
     }
 
-    public int getColumnSize(Table table) {
+    public int getColumnSize(String table) {
         return getColumnNames(table).size();
     }
 
@@ -141,16 +122,16 @@ public class JDBCDatabase {
         return result;
     }
 
-    public String getInsertStatement(Table table, ArrayList<String> vals) {
+    public String getInsertStatement(String table, ArrayList<String> vals) {
         return "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
                 valueStatement(vals);
     }
 
-    public String update(Table table, ArrayList<String> oldVals, ArrayList<String> newVals) {
+    public String update(String table, ArrayList<String> oldVals, ArrayList<String> newVals) {
         try {
             Statement st = connection.createStatement();
-            String primaryKey = getColumnNames(table).get(0);
-            String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table), newVals) + " WHERE " +
+            String primaryKey = getColumnNames(table.toString()).get(0);
+            String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table.toString()), newVals) + " WHERE " +
                     whereStatement(table, oldVals);
             System.out.println(sql);
             st.executeQuery(sql);
@@ -160,7 +141,7 @@ public class JDBCDatabase {
         return "";
     }
 
-    public String delete(Table table, String val) {
+    public String delete(String table, String val) {
         try {
             Statement st = connection.createStatement();
             String primaryKey = getColumnNames(table).get(0);
@@ -173,7 +154,7 @@ public class JDBCDatabase {
         return "";
     }
 
-    public String insert(Table table, ArrayList<String> vals) {
+    public String insert(String table, ArrayList<String> vals) {
         try {
             Statement st = connection.createStatement();
             String sql = "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
@@ -186,7 +167,7 @@ public class JDBCDatabase {
         return "";
     }
 
-    public String columnStatement(Table table) {
+    public String columnStatement(String table) {
         String s = "(";
         ArrayList<String> columns = getColumnNames(table);
         for (int i = 0; i < columns.size(); i++) {
@@ -199,7 +180,8 @@ public class JDBCDatabase {
     public String valueStatement(ArrayList<String> vals) {
         String s = "(";
         for (int i = 0; i < vals.size(); i++) {
-            if (!vals.get(i).equals("")) {
+
+            if (vals.get(i) != null && !vals.get(i).equals("")) {
                 s += "'" + vals.get(i) + "'";
             } else {
                 s += "NULL";
@@ -212,18 +194,22 @@ public class JDBCDatabase {
     public String setStatement(ArrayList<String> columns, ArrayList<String> vals) {
         String s = "";
         for (int i = 0; i < vals.size(); i++) {
-            s += columns.get(i) + " = '" + vals.get(i) + "'";
+            if (!vals.get(i).equals("")) {
+                s += columns.get(i) + " = '" + vals.get(i) + "'";
+            } else {
+                s += columns.get(i) + " = NULL";
+            }
             if (i != vals.size() - 1) s += ", ";
         }
         return s;
     }
 
-    public String whereStatement(Table table, ArrayList<String> vals) {
+    public String whereStatement(String table, ArrayList<String> vals) {
         String s = "";
         ArrayList<String> keys= getKeys(table);
         ArrayList<String> columns = getColumnNames(table);
         for (int i = 0; i < vals.size(); i++) {
-            if (keys.get(i).equals(columns.get(i))) {
+            if (keys.get(0).equals(columns.get(i))) { // TODO keys abfragen, aktuell nur der erste
                 s += keys.get(i) + " = '" + vals.get(i) + "'";
             }
         }
@@ -232,13 +218,14 @@ public class JDBCDatabase {
 
     public String exceptionMessageHandle(Exception e) {
         System.out.println(e.getMessage());
+        e.printStackTrace();
         if (e instanceof SQLIntegrityConstraintViolationException) {
             return "Ein Constraint wurde verletzt!";
         }
         return e.getMessage().substring(11);
     }
 
-    public ArrayList<String> getKeys(Table table) {
+    public ArrayList<String> getKeys(String table) {
         ArrayList<String> keys = new ArrayList<>();
         try {
             Statement st = connection.createStatement();
@@ -254,7 +241,7 @@ public class JDBCDatabase {
         return keys;
     }
 
-    public ArrayList<Boolean> getNullables(Table table) {
+    public ArrayList<Boolean> getNullables(String table) {
         ArrayList<Boolean> nullables = new ArrayList<>();
         try {
             Statement st = connection.createStatement();

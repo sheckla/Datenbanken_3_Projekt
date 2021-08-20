@@ -46,6 +46,7 @@ public class DataTextFieldNode extends TextField {
 //                System.out.println("its me");
 //            }
 //        });
+        setText("");
         this.col = col;
         this.row = row;
     }

@@ -254,9 +254,7 @@ public class LayoutSample_TEST extends Application {
 
         ImageView pages[] = new ImageView[8];
         for (int i=0; i<8; i++) {
-            pages[i] = new ImageView(
-                    new Image(LayoutSample_TEST.class.getResourceAsStream(
-                    "graphics/chart_"+(i+1)+".png")));
+            pages[i] = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("graphics/chart_"+(i+1)+".png")));
             flow.getChildren().add(pages[i]);
         }
 

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 public class DataMatrix {
     private ArrayList<ArrayList<DataTextFieldNode>> matrix;
 
+    // TODO Views nicht editierbar
     public DataMatrix() {
         matrix = new ArrayList<>();
     }
@@ -76,7 +77,7 @@ public class DataMatrix {
             tf.setChanged(false);
         }
         matrix.add(entry);
-        markNullables(nullables, matrix.size()-1);
+        markNullables(nullables, matrix.size() - 1);
     }
 
     public String getVal(int col, int row) {
@@ -90,7 +91,7 @@ public class DataMatrix {
     }
 
     public DataTextFieldNode getNode(int col, int row) {
-        DataTextFieldNode result = null;
+        DataTextFieldNode result = new DataTextFieldNode();
         for (ArrayList<DataTextFieldNode> arr : matrix) {
             for (DataTextFieldNode tf : arr) {
                 if (tf.getCol() == col && tf.getRow() == row) return tf;
@@ -117,8 +118,27 @@ public class DataMatrix {
         ArrayList<String> entry = new ArrayList<>();
         for (DataTextFieldNode node : matrix.get(row)) {
             entry.add(node.initialVal);
+//            if (node.initialVal.equals("")) {
+//                entry.add("");
+//            } else {
+//                entry.add(node.initialVal);
+//            }
         }
         return entry;
+    }
+
+    public String getNextKey() {
+        int key = 0;
+        try {
+            for (int i = 1; i < matrix.size(); i++) {
+                int val = Integer.parseInt(matrix.get(i).get(0).getText());
+                if (val > key) key = val;
+            }
+        } catch(NumberFormatException e) {
+            System.out.println(e.getMessage());
+            return "";
+        }
+        return Integer.toString(key);
     }
 
     public int size() {
