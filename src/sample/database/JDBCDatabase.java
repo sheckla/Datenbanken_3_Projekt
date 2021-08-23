@@ -37,7 +37,6 @@ public class JDBCDatabase {
     }
 
 
-
     public ArrayList<String> getColumnNames(String table) {
         ArrayList<String> columns = new ArrayList<>();
         try {
@@ -49,7 +48,7 @@ public class JDBCDatabase {
                 columns.add(rsmd.getColumnName(i));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            exceptionMessageHandle(e);
         }
         return columns;
     }
@@ -127,14 +126,16 @@ public class JDBCDatabase {
                 valueStatement(vals);
     }
 
-    public String update(String table, ArrayList<String> oldVals, ArrayList<String> newVals) {
+    public String update(String table, ArrayList<String> oldVals, ArrayList<String> newVals, ArrayList<String> autoFill) {
         try {
+            insertAutoFillValues(table, newVals, autoFill);
             Statement st = connection.createStatement();
             String primaryKey = getColumnNames(table.toString()).get(0);
             String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table.toString()), newVals) + " WHERE " +
                     whereStatement(table, oldVals);
             System.out.println(sql);
-            st.executeQuery(sql);
+            //st.executeQuery(sql);
+            st.close();
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
@@ -154,13 +155,47 @@ public class JDBCDatabase {
         return "";
     }
 
-    public String insert(String table, ArrayList<String> vals) {
+    // table immer mit .toString als Parameter!
+    public String insert(String table, ArrayList<String> vals, ArrayList<String> autoFill) {
+        try {
+            insertAutoFillValues(table, vals, autoFill);
+            insertToDatabase(table, vals);
+        } catch (Exception e) {
+            return exceptionMessageHandle(e);
+        }
+        return "";
+    }
+
+    private void insertAutoFillValues(String table, ArrayList<String> vals, ArrayList<String> autoFill) {
+        if (!autoFill.isEmpty()) {
+            for (int i = 0; i < autoFill.size(); i++) {
+                ArrayList<String> toFilledColumnNames = getColumnNames(autoFill.get(i));
+                ArrayList<String> currentColumnNames = getColumnNames(table.toString());
+
+                ArrayList<String> toFilledColumnValues = new ArrayList<>();
+                for (int n = 0; n < currentColumnNames.size(); n++) {
+                    for (String filledColumn : toFilledColumnNames) {
+                        if (currentColumnNames.get(n).equals(filledColumn)) {
+                            toFilledColumnValues.add(vals.get(n));
+                        }
+                    }
+                }
+
+                insertToDatabase(autoFill.get(i), toFilledColumnValues);
+            }
+        }
+    }
+
+    // single row add
+    private String insertToDatabase(String table, ArrayList<String> vals) {
+
         try {
             Statement st = connection.createStatement();
             String sql = "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
                     valueStatement(vals);
             System.out.println(sql);
             st.executeQuery(sql);
+            st.close();
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
@@ -194,7 +229,9 @@ public class JDBCDatabase {
     public String setStatement(ArrayList<String> columns, ArrayList<String> vals) {
         String s = "";
         for (int i = 0; i < vals.size(); i++) {
-            if (!vals.get(i).equals("")) {
+            if (isDate(vals.get(i))) {
+                s += columns.get(i) + " = TO_DATE('" + vals.get(i) + "', 'YYYY-MM-DD HH24:MI:SS')";
+            } else if (!vals.get(i).equals("")) {
                 s += columns.get(i) + " = '" + vals.get(i) + "'";
             } else {
                 s += columns.get(i) + " = NULL";
@@ -206,7 +243,7 @@ public class JDBCDatabase {
 
     public String whereStatement(String table, ArrayList<String> vals) {
         String s = "";
-        ArrayList<String> keys= getKeys(table);
+        ArrayList<String> keys = getKeys(table);
         ArrayList<String> columns = getColumnNames(table);
         for (int i = 0; i < vals.size(); i++) {
             if (keys.get(0).equals(columns.get(i))) { // TODO keys abfragen, aktuell nur der erste
@@ -217,8 +254,9 @@ public class JDBCDatabase {
     }
 
     public String exceptionMessageHandle(Exception e) {
+        if (e.getMessage() == null) return "";
         System.out.println(e.getMessage());
-        e.printStackTrace();
+        //e.printStackTrace();
         if (e instanceof SQLIntegrityConstraintViolationException) {
             return "Ein Constraint wurde verletzt!";
         }
@@ -258,5 +296,23 @@ public class JDBCDatabase {
             e.printStackTrace();
         }
         return nullables;
+    }
+
+    private boolean isDate(String s) {
+        // format YYYY-MM-DD HH24:MI:SS
+        // TODO to be extended for accuracy
+        if (s.length() > 7) {
+            if (s.charAt(4) == '-' && s.charAt(7) == '-') return true;
+        }
+        return false;
+    }
+
+    public void close() {
+        try {
+            connection.close();
+            System.out.println("Connection closed");
+        } catch (Exception e) {
+            exceptionMessageHandle(e);
+        }
     }
 }

@@ -53,6 +53,12 @@ public class DataMatrix {
         matrix.add(textFields);
     }
 
+    public void setMatrix(ArrayList<ArrayList<String>> matrix) {
+        for (int row = 0; row < matrix.size(); row++) {
+            addEntry(matrix.get(row), row);
+        }
+    }
+
     public void removeEntry(int index) {
         matrix.remove(index);
     }
@@ -104,6 +110,10 @@ public class DataMatrix {
         return matrix.get(row);
     }
 
+    public ArrayList<DataTextFieldNode> getLatestNodeEntry() {
+        return getNodeEntry(matrix.size()-1);
+    }
+
     public void markNullables(ArrayList<Boolean> nullables, int row) {
         for (int i = 0; i < matrix.get(row).size(); i++) {
             if (!nullables.get(i)) {
@@ -127,18 +137,29 @@ public class DataMatrix {
         return entry;
     }
 
-    public String getNextKey() {
-        int key = 0;
-        try {
-            for (int i = 1; i < matrix.size(); i++) {
-                int val = Integer.parseInt(matrix.get(i).get(0).getText());
-                if (val > key) key = val;
+    public ArrayList<String> getNextAvailableKeys(ArrayList<String> keys) {
+        ArrayList<Integer> keyValues = new ArrayList<>();
+        for (int column = 0; column < matrix.get(0).size(); column++) { // iterate columns
+            for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
+                // iterate through each row with corresponding column name
+                if (matrix.get(0).get(column).getText().equals(keys.get(keyIndex))) {
+                    keyValues.add(1);
+                    for (int row = 1; row < matrix.size(); row++) {
+                        String text = matrix.get(row).get(column).getText();
+                        if (text.equals("")) text = "1";
+                        int val = Integer.parseInt(text);
+                        if (keyValues.get(keyIndex) <= val) keyValues.set(keyIndex, val);
+                    }
+                    keyValues.set(keyIndex,1+keyValues.get(keyIndex));
+                }
             }
-        } catch(NumberFormatException e) {
-            System.out.println(e.getMessage());
-            return "";
         }
-        return Integer.toString(key);
+
+        ArrayList<String> keyStrings = new ArrayList<>();
+        for (Integer i : keyValues) {
+            keyStrings.add(i + "");
+        }
+        return keyStrings;
     }
 
     public int size() {
