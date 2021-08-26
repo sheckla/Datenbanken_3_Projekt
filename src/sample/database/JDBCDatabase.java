@@ -134,7 +134,7 @@ public class JDBCDatabase {
             String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table.toString()), newVals) + " WHERE " +
                     whereStatement(table, oldVals);
             System.out.println(sql);
-            //st.executeQuery(sql);
+            st.executeQuery(sql);
             st.close();
         } catch (Exception e) {
             return exceptionMessageHandle(e);
@@ -157,6 +157,7 @@ public class JDBCDatabase {
 
     // table immer mit .toString als Parameter!
     public String insert(String table, ArrayList<String> vals, ArrayList<String> autoFill) {
+        System.out.println("\n MAIN INSERT\n");
         try {
             insertAutoFillValues(table, vals, autoFill);
             insertToDatabase(table, vals);
@@ -188,7 +189,6 @@ public class JDBCDatabase {
 
     // single row add
     private String insertToDatabase(String table, ArrayList<String> vals) {
-
         try {
             Statement st = connection.createStatement();
             String sql = "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
@@ -215,8 +215,9 @@ public class JDBCDatabase {
     public String valueStatement(ArrayList<String> vals) {
         String s = "(";
         for (int i = 0; i < vals.size(); i++) {
-
-            if (vals.get(i) != null && !vals.get(i).equals("")) {
+            if (isDate(vals.get(i))) {
+                s += "TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
+            } else if (!vals.get(i).equals("")) {
                 s += "'" + vals.get(i) + "'";
             } else {
                 s += "NULL";
@@ -230,7 +231,7 @@ public class JDBCDatabase {
         String s = "";
         for (int i = 0; i < vals.size(); i++) {
             if (isDate(vals.get(i))) {
-                s += columns.get(i) + " = TO_DATE('" + vals.get(i) + "', 'YYYY-MM-DD HH24:MI:SS')";
+                s += columns.get(i) + " = TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
             } else if (!vals.get(i).equals("")) {
                 s += columns.get(i) + " = '" + vals.get(i) + "'";
             } else {

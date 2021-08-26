@@ -15,12 +15,14 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import sample.database.DataMatrix;
 import sample.database.DataTextFieldNode;
 import sample.database.JDBCDatabase;
 import sample.database.Table;
 import sample.database.TableView;
 import sample.layoutTest.LayoutSample_TEST;
+import sample.util.EntryManager;
+import sample.util.TableClickHandler;
+import sample.util.TableCreator;
 
 import java.util.*;
 
@@ -28,32 +30,27 @@ import java.util.*;
 // TODO geänderte werte markieren und bei wechsel fragen ob die veränderung verworfen werden soll
 
 public class UIController {
-    BorderPane border; // main UI element
-    Label currentSelectedTable = new Label("");
-    Label currentStatement = new Label("");
-    Label debug = new Label("");
+    private BorderPane border; // main UI element
+    private Text dataTitle = new Text("");
+    private Label currentSelectedTable = new Label("");
+    private Label updatedTime = new Label("");
+    private Label currentStatement = new Label("");
+    private Label debug = new Label("");
+
 
     // TODO textfield -> row anzeigen per col/row
-    ListView<GridPane> dataMatrixListView = new ListView<>(); // TODO slider anpassen
-
-    // pulled entries = [0,newEntriesIndex-1], new Entries = [newEntriesIndex,entries.size()]
-    DataMatrix entries;   // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
-    DataMatrix deletedEntries;
-    DataMatrix changedEntries;
-    int newEntriesIndex;        // neue eintraege sind ab >= pulledEntries.size()
-
-    JDBCDatabase util;
-    TableView table;
-    ArrayList<TableView> tableViews = new ArrayList<>();
-    java.util.HashMap<String, TableView> tableMap = new java.util.HashMap();
+    private ListView<GridPane> dataMatrixListView = new ListView<>(); // TODO slider anpassen
+    private EntryManager entryManager;
+    private TableClickHandler tableClickHandler = new TableClickHandler();
+    private JDBCDatabase jdbc;
+    private TableView table;
+    private ArrayList<TableView> tableViews = new ArrayList<>();
+    private HashMap<String, TableView> tableMap = TableCreator.createTables();
 
     public UIController() {
-        util = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
-                "oSoSe2021_G7", "oSoSe2021_G7");
-        entries = new DataMatrix();
-        deletedEntries = new DataMatrix();
-        changedEntries = new DataMatrix();
-        createTables();
+        jdbc = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
+                "oSoSe2021_G7", "g4Tbb3Vn0");
+        entryManager = new EntryManager(jdbc);
     }
 
     public BorderPane createUI() {
@@ -68,10 +65,13 @@ public class UIController {
 
     public void changeTable(TableView table) {
         this.table = table;
-        currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected")); // TODO zentralisieren mit Zeitanzeige
-        pullData();
+        currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected"));
+        entryManager.changeTable(table);
+        entryManager.pullData();
         border.setCenter(createDatabaseView());
         border.setRight(createRightNavigation());
+        debug.setText(dataMatrixListView.getSelectionModel().getSelectedIndex() + "");
+        updatedTime.setText(entryManager.curTime());
     }
 
     private void refreshDatabaseView() {
@@ -81,7 +81,7 @@ public class UIController {
     }
 
     private VBox createDatabaseView() {
-        System.out.println("PRIMARY KEYS: " + util.getKeys(table.toString()));
+        System.out.println("PRIMARY KEYS: " + jdbc.getKeys(table.toString()));
 
         dataMatrixListView = new ListView(); // TODO slider anpassen, optimieren (wird zu oft ausgeführt)
         dataMatrixListView.setPrefHeight(2160);
@@ -90,18 +90,25 @@ public class UIController {
         vbox.setPadding(new Insets(10)); // Set all sides to 10
         vbox.setSpacing(8);              // Gap between nodes
 
-        Text title = new Text("Daten");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        vbox.getChildren().add(title);
+        dataTitle = new Text("Daten");
+        dataTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        vbox.getChildren().add(dataTitle);
 
         if (table != null) {
-            for (int i = 0; i < entries.size(); i++) {
-                dataMatrixListView.getItems().add(createDataRow(entries.getNodeEntry(i)));
+            for (int i = 0; i < entryManager.size(); i++) {
+                dataMatrixListView.getItems().add(createDataRow(entryManager.getNodeEntry(i)));
             }
             vbox.getChildren().add(dataMatrixListView);
         }
+        dataMatrixListView.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                nToMHandler(dataMatrixListView.getSelectionModel().getSelectedIndex());
+            }
+        });
         return vbox;
     }
+
 
     // TODO Varchar constraints für charlimit
     private GridPane createDataRow(ArrayList<DataTextFieldNode> entry) {
@@ -112,71 +119,61 @@ public class UIController {
             root.setColumnIndex(tf, tf.getCol());        // ^
             root.getChildren().add(tf);
         }
+
+        // click listener for row
+        root.getChildren().forEach(item -> {
+            item.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    nToMHandler(((DataTextFieldNode) item).getRow());
+                }
+            });
+        });
         return root;
     }
 
-    private void pullData() {
-        entries.clear();
-        deletedEntries.clear();
-        changedEntries.clear();
-
-        if (table != null) {
-            util.getConnection();
-            entries.initializeColumnNames(util.getColumnNames(this.table.toString()));
-            ArrayList<ArrayList<String>> eintraege = util.getEntries(this.table.toString());
-
-            int row = 1;
-            ArrayList<Boolean> nullables = util.getNullables(this.table.toString());
-            for (ArrayList<String> entry : util.getEntries(this.table.toString())) {
-                entries.addEntry(entry, row++);
-                entries.markNullables(nullables, row - 1);
-            }
-            newEntriesIndex = entries.size();
-        }
-    }
-
     private VBox createTopNavigation() {
-//        HBox hbox = new HBox();
-//        hbox.setPadding(new Insets(15, 12, 15, 12));
-//        hbox.setSpacing(10);   // Gap between nodes
-//        hbox.setStyle("-fx-background-color: #FFFFFF;");
-//
-//        Button buttonAufgabe = new Button("Aufgaben");
-//        buttonAufgabe.setPrefSize(100, 20);
-//        buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) {
-//                changeTable(tableMap.get("AUFGABE"));
-//            }
-//        });
-//
-//        Button buttonPersonal = new Button("Personal");
-//        buttonPersonal.setPrefSize(100, 20);
-//        buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) {
-//                changeTable(tableMap.get("PERSONAL"));
-//            }
-//        });
-//
-//        Button buttonMaschine = new Button("Maschinen");
-//        buttonMaschine.setPrefSize(100, 20);
-//        buttonMaschine.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) {
-//                changeTable(tableMap.get("MASCHINE"));
-//            }
-//        });
-//
-//        Button buttonGeschaeftspartner = new Button("Geschaeftspartner");
-//        buttonGeschaeftspartner.setPrefSize(100, 20);
-//        buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) {
-//                changeTable(tableMap.get("GESCHAEFTSPARTNER"));
-//            }
-//        });
-//
+        HBox hbox = new HBox();
+        hbox.setPadding(new Insets(15, 12, 15, 12));
+        hbox.setSpacing(10);   // Gap between nodes
+        hbox.setStyle("-fx-background-color: #FFFFFF;");
+
+        Button buttonAufgabe = new Button("Aufgaben");
+        buttonAufgabe.setPrefSize(100, 20);
+        buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                changeTable(tableMap.get("AUFGABE"));
+            }
+        });
+
+        Button buttonPersonal = new Button("Personal");
+        buttonPersonal.setPrefSize(100, 20);
+        buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                changeTable(tableMap.get("PERSONAL"));
+            }
+        });
+
+        Button buttonMaschine = new Button("Maschinen");
+        buttonMaschine.setPrefSize(100, 20);
+        buttonMaschine.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                changeTable(tableMap.get("MASCHINE"));
+            }
+        });
+
+        Button buttonGeschaeftspartner = new Button("Geschaeftspartner");
+        buttonGeschaeftspartner.setPrefSize(100, 20);
+        buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                changeTable(tableMap.get(table.correspondingTables.get(0)));
+            }
+        });
+
 //        // Inventar dropdown
 //        String inventar[] = {"Inventargegenstand", "Vorräte", "Lagersilo", "Maschine"};
 //        ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
@@ -189,9 +186,9 @@ public class UIController {
 //        TilePane tilePane = new TilePane(inventarComboBox);
 //        inventarComboBox.getSelectionModel().selectFirst();
 //        inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
-//            if (!isShowing) {
-//                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
-//            }
+////            if (!isShowing) {
+////                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+////            }
 //        });
 //
 //        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, buttonGeschaeftspartner, currentSelectedTable);
@@ -250,14 +247,13 @@ public class UIController {
         VBox vbox = new VBox();
         vbox.setPadding(new Insets(10)); // Set all sides to 10
         vbox.setSpacing(8);              // Gap between nodes
-        // TODO Buttons groesse anpassen
         Text title = new Text("View");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(title);
 
-        for (int i = 22; i < 46; i++) {
+        ComboBox<Button> buttonComboBox = new ComboBox();
+        for (int i = 22; i < 22; i++) {
             TableView table = new TableView(Table.values()[i].toString(), false);
-
             String first = table.toString().substring(0, 1).toUpperCase();
             String after = table.toString().substring(1, table.toString().length()).toLowerCase();
             String tableName = first + after;
@@ -270,10 +266,66 @@ public class UIController {
                     changeTable(tableMap.get(table.toString()));
                 }
             });
-            vbox.getChildren().add(currentButton);
+
+            switch (tableName) {
+                case "Inventarliste":
+                    buttonComboBox = new ComboBox(FXCollections.observableArrayList());
+                    buttonComboBox.setPromptText("Inventar");
+                    break;
+                case "Personalliste":
+                    vbox.getChildren().add(buttonComboBox);
+                    buttonComboBox = new ComboBox();
+                    buttonComboBox.setPromptText("Personal");
+                    break;
+                case "Aufgabenbereiche":
+                    vbox.getChildren().add(buttonComboBox);
+                    buttonComboBox = new ComboBox();
+                    buttonComboBox.setPromptText("Aufgaben");
+                    break;
+                case "Finanzübersicht":
+                    vbox.getChildren().add(buttonComboBox);
+                    buttonComboBox = new ComboBox();
+                    buttonComboBox.setPromptText("Finanzen");
+                    break;
+            }
+            if (tableName.equals("Kostenstelleliste")) {
+                buttonComboBox.getChildrenUnmodifiable().add(currentButton);
+                vbox.getChildren().add(buttonComboBox);
+            }
+            if (tableName.equals("Geschaeftspartnerliste")) {
+                vbox.getChildren().add(currentButton);
+            }
         }
         return vbox;
     }
+//
+//
+//        for(
+//    int i = 22;
+//    i< 22;i++)
+//
+//    {
+//        TableView table = new TableView(Table.values()[i].toString(), false);
+//        String first = table.toString().substring(0, 1).toUpperCase();
+//        String after = table.toString().substring(1, table.toString().length()).toLowerCase();
+//        String tableName = first + after;
+//
+//        Button currentButton = new Button(tableName);
+//        currentButton.setPrefSize(200, 20);
+//        currentButton.setOnAction(new EventHandler<ActionEvent>() {
+//            @Override
+//            public void handle(ActionEvent event) {
+//                changeTable(tableMap.get(table.toString()));
+//                secondClick = true;
+//            }
+//        });
+//
+//
+//        vbox.getChildren().add(currentButton);
+//
+//    }
+//        return vbox;
+//}
 
     private VBox createRightNavigation() {
         VBox vbox = null;
@@ -311,6 +363,29 @@ public class UIController {
             flow.getChildren().add(pie);
             flow.getChildren().add(bar);
             vbox.getChildren().add(flow);
+        } else if (!table.mToNTables.isEmpty()) {
+            vbox = new VBox();
+            vbox.setPadding(new Insets(10)); // Set all sides to 10
+            vbox.setSpacing(8);              // Gap between nodes
+            // TODO Buttons groesse anpassen
+            Text title = new Text("ADD N:M");
+            title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            vbox.getChildren().add(title);
+
+
+            // N:M Table button
+            Button currentButton = new Button(table.mToNTables.get(0));
+            currentButton.setPrefSize(100, 20);
+            currentButton.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    tableClickHandler.setButtonClicked(true);
+                    changeTable(tableMap.get(table.correspondingTables.get(0)));
+                    dataTitle.setText("Zweiten Eintrag auswählen");
+                }
+            });
+            vbox.getChildren().add(currentButton);
+
         }
         return vbox;
     }
@@ -330,56 +405,8 @@ public class UIController {
         buttonEinfuegen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                lastKey = entries.getLatestEntry().get(0);
-                // TODO neuer eintrag automatische werte für z.B InventarNr, Erstelldatum etc.
-                // TODO immer leeres feld
                 // TODO onbuttonlistener - ENTER
-
-                // ID_table keys
-                sample.database.DataMatrix id_table = new DataMatrix();
-                util.getConnection();
-
-
-                // get free key value from InventarNr TODO other table too (?)
-                if (table != null) {
-                    util.getConnection();
-                    id_table.initializeColumnNames(util.getColumnNames(table.iterableKeyValuesTables.get(0).toString()));
-                    ArrayList<ArrayList<String>> eintraege = util.getEntries(table.toString());
-
-                    int row = 1;
-                    ArrayList<Boolean> nullables = util.getNullables(table.iterableKeyValuesTables.get(0).toString());
-                    for (ArrayList<String> entry : util.getEntries(table.iterableKeyValuesTables.get(0).toString())) {
-                        id_table.addEntry(entry, row++);
-                        id_table.markNullables(nullables, row - 1);
-                    }
-                }
-
-                // TODO code cleanup
-                ArrayList<String> inventarKeys = new ArrayList<String>();
-                inventarKeys.add("INVENTARNR");
-                ArrayList<String> FREE_KEYS_TEST = id_table.getNextAvailableKeys(inventarKeys);
-
-                entries.addEmptyEntry(util.getNullables(table.toString()), util.getColumnSize(table.toString()));
-                ArrayList<String> columns = util.getColumnNames(table.toString());
-                ArrayList<String> nextAvailableKeys = entries.getNextAvailableKeys(table.iterableKeyValues);
-                ArrayList<String> keys = table.iterableKeyValues;
-
-                // add next free kee to new emptry entry
-                for (int i = 0; i < keys.size(); i++) {
-                    if (keys.get(i).equals(inventarKeys.get(0))) nextAvailableKeys.set(i, FREE_KEYS_TEST.get(0));
-                }
-
-
-                for (int column = 0; column < columns.size(); column++) {
-                    for (int keyIndex = 0; keyIndex < table.iterableKeyValues.size(); keyIndex++) {
-                        if (columns.get(column).equals(keys.get(keyIndex)))
-                            entries.getLatestNodeEntry().get(column).setText(nextAvailableKeys.get(keyIndex));
-                    }
-                }
-
-                //System.out.println(availableKeys);
-
-                //printMatrix();
+                entryManager.createNewEntry();
                 refreshDatabaseView();
             }
         });
@@ -389,29 +416,9 @@ public class UIController {
         buttonCommit.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                // TODO zur datenbank pushen
-                // TODO Commit texte
-                for (int i = newEntriesIndex; i < entries.size(); i++) {
-                    //System.out.println("size" + (entries.size() - newEntriesIndex));
-                    String insertResultText = util.insert(table.toString(), entries.getEntry(i), table.preFillTables);
-                    //currentStatement.setText("Commit erfolgreich!");
-                    if (!insertResultText.equals("")) currentStatement.setText(insertResultText);
-                }
-
-                for (int i = 0; i < deletedEntries.size(); i++) {
-                    String val = deletedEntries.getVal(0, i);
-                    util.delete(table.toString(), val);
-                }
-
-                ArrayList<Integer> changedIndices = locateChangedEntries();
-                for (Integer i : changedIndices) {
-                    if (i <= newEntriesIndex) {
-                        //System.out.println(util.update(table, entries.getInitialEntry(i), entries.getEntry(i)));
-                        ArrayList<String> initials = entries.getInitialEntry(i);
-                        ArrayList<String> newEntries = entries.getEntry(i);
-                        util.update(table.toString(), entries.getInitialEntry(i), entries.getEntry(i), table.preFillTables);
-                    }
-                }
+                // TODO Commit output texte
+                entryManager.commit();
+                refreshDatabaseView();
             }
         });
 
@@ -420,9 +427,8 @@ public class UIController {
         buttonLoeschen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                int index = dataMatrixListView.getSelectionModel().getSelectedIndex();
-                deletedEntries.addEntry(entries.getEntry(index), deletedEntries.size());
-                entries.removeEntry(index);
+                int row = dataMatrixListView.getSelectionModel().getSelectedIndex();
+                entryManager.removeEntry(row);
                 refreshDatabaseView();
             }
         });
@@ -432,31 +438,59 @@ public class UIController {
         buttonAktualisieren.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                pullData();
+                entryManager.pullData();
                 refreshDatabaseView();
             }
         });
 
         hbox.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren);
+        //Tabellen label einfügen
+        HBox hBox2 = new HBox();
+        hBox2.setPadding(new Insets(15, 12, 15, 12));
+        hBox2.setSpacing(10);   // Gap between nodes
+        hBox2.getChildren().add(currentSelectedTable);
+        //hBox2.getChildren().add();
+
+        // data pulled date
+        hBox2.setPadding(new Insets(15, 12, 15, 12));
+        hBox2.setSpacing(10);   // Gap between nodes
+        hBox2.getChildren().add(updatedTime);
+        //hBox2.getChildren().add();
 
         root.getChildren().add(hbox);
+        root.getChildren().add(hBox2);
         //currentStatement.setStyle("-fx-text-box-border: #B22222; -fx-focus-color: #B22222;");
         root.getChildren().add(currentStatement);
         root.getChildren().add(debug);
         return root;
     }
 
-    private ArrayList<Integer> locateChangedEntries() {
-        ArrayList<Integer> changed = new ArrayList<>();
-        for (int i = 1; i < newEntriesIndex; i++) {
-            for (DataTextFieldNode node : entries.getNodeEntry(i)) {
-                if (node.changed()) {
-                    changed.add(i);
-                    //break;
-                }
+    private void nToMHandler(int row) {
+        // both corresponding n:m tables clicked -> add to actual n:m table
+        if (tableClickHandler.isSecondClick()) {
+            tableClickHandler.setSecondClick(false);
+            tableClickHandler.setSecondEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
+            changeTable(tableMap.get("BEINHALTET"));
+
+            tableClickHandler.setnToMColumns(jdbc.getColumnNames(table.toString()));
+            System.out.println("selected entries are:");
+            System.out.println(tableClickHandler.getFirstRow());
+            System.out.println(tableClickHandler.getSecondRow());
+
+            tableClickHandler.reset();
+
+            // Insert values to entry
+            ArrayList<DataTextFieldNode> nodes = entryManager.getLatestNodeEntry();
+            ArrayList<String> selectedUserValues = tableClickHandler.getFilledNtoMColumns();
+            System.out.println(selectedUserValues);
+            for (int i = 0; i < selectedUserValues.size(); i++) {
+                nodes.get(i).setText(selectedUserValues.get(i));
             }
+        } else {
+            System.out.println("First Click");
+            tableClickHandler.setFirstEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
+            System.out.println(tableClickHandler.getFirstRow());
         }
-        return changed;
     }
 
     private String replaceUmlaute(String s) {
@@ -467,15 +501,6 @@ public class UIController {
         s = s.replaceAll("ß", "ss");
         s = s.toUpperCase();
         return s;
-    }
-
-    private void printMatrix() {
-        for (ArrayList<String> arr : entries.getStringMatrix()) {
-            for (String s : arr) {
-                System.out.print(s + ", ");
-            }
-            System.out.println();
-        }
     }
 
     private void showPieChart() {
@@ -499,8 +524,8 @@ public class UIController {
             }
         };
 
-        for (int i = 1; i < entries.size(); i++) {
-            pieChartData.add(new PieChart.Data(entries.getEntry(i).get(0), 22));
+        for (int i = 1; i < entryManager.size(); i++) {
+            pieChartData.add(new PieChart.Data(entryManager.getEntry(i).get(0), 22));
         }
         final PieChart chart = new PieChart(pieChartData);
         chart.setTitle(table.toString());
@@ -550,65 +575,7 @@ public class UIController {
         border.setCenter(bc);
     }
 
-    private void createTables() {
-        for (int i = 0; i < 22; i++) {
-            TableView table = new TableView(Table.values()[i].toString(), true);
-            tableMap.put(table.toString(), table);
-
-            switch (table.toString()) {
-                case "MASCHINE":
-                    table.preFillTables.add("STANDORT");
-                    table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValues.add("SN");
-                    table.iterableKeyValues.add("INVENTARNR");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
-                    break;
-                case "Lagersilo":
-                    table.preFillTables.add("STANDORT");
-                    table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValues.add("SiloNr");
-                    table.iterableKeyValues.add("INVENTARNR");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
-                    table.decimalValues.add("Kapazitaet");
-                    table.decimalValues.add("Fuellmenge");
-                    break;
-                case "Vorraete":
-                    table.preFillTables.add("STANDORT");
-                    table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
-                    break;
-                case "Geschaeftspartner":
-                    table.preFillTables.add("STANDORT");
-                    break;
-                case "Personal":
-                    table.preFillTables.add("MitarbeiterNr");
-                    table.defaultSysdate.add("Einstellungsdatum");
-                    table.iterableKeyValues.add("MitarbeiterNr");
-                    break;
-
-            }
-
-
-
-        }
-
-        for (int i = 22; i < 46; i++) {
-            TableView table = new TableView(Table.values()[i].toString(), false);
-            tableMap.put(table.toString(), table);
-
-            switch (table.toString()) {
-                case "AUFGABENBEREICHE":
-                    table.displayButtons.add("BARCHART");
-                    break;
-            }
-        }
-
-//        for (java.util.Map.Entry<String, TableView> entry : map.entrySet()) {
-//            System.out.println(entry.getKey() + " " + entry.getValue().editable());
-//        }
-    }
-
     public void closeDatabaseConnection() {
-        util.close();
+        jdbc.close();
     }
 }

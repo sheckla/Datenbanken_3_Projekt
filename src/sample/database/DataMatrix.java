@@ -111,7 +111,7 @@ public class DataMatrix {
     }
 
     public ArrayList<DataTextFieldNode> getLatestNodeEntry() {
-        return getNodeEntry(matrix.size()-1);
+        return getNodeEntry(matrix.size() - 1);
     }
 
     public void markNullables(ArrayList<Boolean> nullables, int row) {
@@ -123,6 +123,36 @@ public class DataMatrix {
             }
         }
     }
+
+    public void replaceDecimalValues(ArrayList<String> decimalValues) {
+        ArrayList<String> columns = getEntry(0);
+        for (int col = 0; col < columns.size(); col++) {
+            for (int j = 0; j < decimalValues.size(); j++) {
+                if (columns.get(col).equals(decimalValues.get(j))) {
+                    for (int row = 1; row < matrix.size(); row++) {
+                        String s = matrix.get(row).get(col).getText();
+                        s = s.replace(".", ",");
+                        matrix.get(row).get(col).setText(s);
+                    }
+                }
+            }
+        }
+    }
+
+    public void fillSysDateValues(ArrayList<String> sysDateValues, int row) {
+        ArrayList<String> columns = getEntry(0);
+        for (int col = 0; col < columns.size(); col++) {
+            for (int j = 0; j < sysDateValues.size(); j++) {
+                if (columns.get(col).equals(sysDateValues.get(j))) {
+//                    for (int row = 1; row < matrix.size(); row++) {
+//                        System.out.println("sysdate");
+                        matrix.get(row).get(col).setText(curDateTime());
+//                    }
+                }
+            }
+        }
+    }
+
 
     public ArrayList<String> getInitialEntry(int row) {
         ArrayList<String> entry = new ArrayList<>();
@@ -138,28 +168,44 @@ public class DataMatrix {
     }
 
     public ArrayList<String> getNextAvailableKeys(ArrayList<String> keys) {
-        ArrayList<Integer> keyValues = new ArrayList<>();
-        for (int column = 0; column < matrix.get(0).size(); column++) { // iterate columns
-            for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
-                // iterate through each row with corresponding column name
-                if (matrix.get(0).get(column).getText().equals(keys.get(keyIndex))) {
-                    keyValues.add(1);
-                    for (int row = 1; row < matrix.size(); row++) {
-                        String text = matrix.get(row).get(column).getText();
-                        if (text.equals("")) text = "1";
-                        int val = Integer.parseInt(text);
-                        if (keyValues.get(keyIndex) <= val) keyValues.set(keyIndex, val);
+        if (!keys.isEmpty()) {
+            ArrayList<Integer> keyValues = new ArrayList<>();
+            for (int column = 0; column < matrix.get(0).size(); column++) { // iterate columns
+                for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
+                    // iterate through each row with corresponding column name
+                    if (matrix.get(0).get(column).getText().equals(keys.get(keyIndex))) {
+                        keyValues.add(1);
+                        for (int row = 1; row < matrix.size(); row++) {
+                            String text = matrix.get(row).get(column).getText();
+                            if (text.equals("")) text = "1";
+                            int val = Integer.parseInt(text);
+                            if (keyValues.get(keyIndex) <= val) keyValues.set(keyIndex, val);
+                        }
+                        keyValues.set(keyIndex, 1 + keyValues.get(keyIndex));
                     }
-                    keyValues.set(keyIndex,1+keyValues.get(keyIndex));
+                }
+            }
+
+            ArrayList<String> keyStrings = new ArrayList<>();
+            for (Integer i : keyValues) {
+                keyStrings.add(i + "");
+            }
+            return keyStrings;
+        }
+        return null;
+    }
+
+    public ArrayList<Integer> locateChangedEntries(int from) {
+        ArrayList<Integer> changed = new ArrayList<>();
+        for (int i = 1; i < from; i++) { // TODO indexfehler beime löschen,aber wirkt sich nicht auf funktionalität aus
+            for (DataTextFieldNode node : matrix.get(i)) {
+                if (node.changed()) {
+                    changed.add(i);
+                    //break;
                 }
             }
         }
-
-        ArrayList<String> keyStrings = new ArrayList<>();
-        for (Integer i : keyValues) {
-            keyStrings.add(i + "");
-        }
-        return keyStrings;
+        return changed;
     }
 
     public int size() {
