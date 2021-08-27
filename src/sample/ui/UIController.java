@@ -1,5 +1,7 @@
 package sample.ui;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableListBase;
@@ -28,6 +30,7 @@ import java.util.*;
 
 // TODO anzahl maximaler angezeigter einträge, seitenanzeige per Intervall (50, 25, 10)
 // TODO geänderte werte markieren und bei wechsel fragen ob die veränderung verworfen werden soll
+// TODO nur bestimmte daten erlauben (int für nummern, zeichen für Strings etc)
 
 public class UIController {
     private BorderPane border; // main UI element
@@ -46,6 +49,7 @@ public class UIController {
     private TableView table;
     private ArrayList<TableView> tableViews = new ArrayList<>();
     private HashMap<String, TableView> tableMap = TableCreator.createTables();
+    private int currentSelectedRow = 0;
 
     public UIController() {
         jdbc = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
@@ -104,6 +108,7 @@ public class UIController {
             @Override
             public void handle(MouseEvent event) {
                 nToMHandler(dataMatrixListView.getSelectionModel().getSelectedIndex());
+                currentSelectedRow = dataMatrixListView.getSelectionModel().getSelectedIndex();
             }
         });
         return vbox;
@@ -126,6 +131,7 @@ public class UIController {
                 @Override
                 public void handle(MouseEvent event) {
                     nToMHandler(((DataTextFieldNode) item).getRow());
+                    currentSelectedRow = ((DataTextFieldNode) item).getRow();
                 }
             });
         });
@@ -174,24 +180,23 @@ public class UIController {
             }
         });
 
-//        // Inventar dropdown
-//        String inventar[] = {"Inventargegenstand", "Vorräte", "Lagersilo", "Maschine"};
-//        ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
-//        inventarComboBox.valueProperty().addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+        // Inventar dropdown
+        String inventar[] = {"Inventargegenstand", "Vorräte", "Lagersilo", "Maschine"};
+        ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
+        inventarComboBox.valueProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+            }
+        });
+        TilePane tilePane = new TilePane(inventarComboBox);
+        inventarComboBox.getSelectionModel().selectFirst();
+        inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
+//            if (!isShowing) {
 //                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
 //            }
-//        });
-//        TilePane tilePane = new TilePane(inventarComboBox);
-//        inventarComboBox.getSelectionModel().selectFirst();
-//        inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
-////            if (!isShowing) {
-////                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
-////            }
-//        });
-//
-//        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, buttonGeschaeftspartner, currentSelectedTable);
+        });
+        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, buttonGeschaeftspartner, currentSelectedTable);
         VBox vBox = new VBox();
         vBox.setSpacing(-10);
 
@@ -236,10 +241,9 @@ public class UIController {
             });
             hbox2.getChildren().add(currentButton);
         }
-
         vBox.getChildren().add(hbox1);
         vBox.getChildren().add(hbox2);
-
+        vBox.getChildren().add(hbox);
         return vBox;
     }
 
@@ -251,12 +255,11 @@ public class UIController {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(title);
 
-        ComboBox<Button> buttonComboBox = new ComboBox();
-        for (int i = 22; i < 22; i++) {
+        for (int i = 22; i < 22 + 17; i++) {
             TableView table = new TableView(Table.values()[i].toString(), false);
             String first = table.toString().substring(0, 1).toUpperCase();
             String after = table.toString().substring(1, table.toString().length()).toLowerCase();
-            String tableName = first + after;
+            String tableName = capitalize(table.toString());
 
             Button currentButton = new Button(tableName);
             currentButton.setPrefSize(200, 20);
@@ -267,36 +270,59 @@ public class UIController {
                 }
             });
 
+            String[] dropDownValues = new String[0];
+            String prompt = "";
             switch (tableName) {
                 case "Inventarliste":
-                    buttonComboBox = new ComboBox(FXCollections.observableArrayList());
-                    buttonComboBox.setPromptText("Inventar");
+                    // Inventar dropdown
+                    dropDownValues = new String[]{"INVENTARLISTE", "VORRAETEMITSTANDORT", "LAGERSILOLISTE", "MASCHINENLISTE", "FELDERLISTE",
+                            "BENOETIGTEVORRAETE", "GEERNTETEPRODUKTE"};
+                    prompt = "Inventar";
                     break;
                 case "Personalliste":
-                    vbox.getChildren().add(buttonComboBox);
-                    buttonComboBox = new ComboBox();
-                    buttonComboBox.setPromptText("Personal");
+                    dropDownValues = new String[]{"PERSONALLISTE", "MITARBEITERAUFTEILUNG", "BEARBEITUNGSGESCHWINDIGKEIT"};
+                    prompt = "Personal";
                     break;
                 case "Aufgabenbereiche":
-                    vbox.getChildren().add(buttonComboBox);
-                    buttonComboBox = new ComboBox();
-                    buttonComboBox.setPromptText("Aufgaben");
+                    dropDownValues = new String[]{"AUFGABENBEREICHE", "AUFGABENLISTE", "AUFGABENVERTEILUNG", "TAETIGKEITENUEBERSICHT"};
+                    prompt = "Aufgabenbereiche";
                     break;
                 case "Finanzübersicht":
-                    vbox.getChildren().add(buttonComboBox);
-                    buttonComboBox = new ComboBox();
-                    buttonComboBox.setPromptText("Finanzen");
+                    dropDownValues = new String[]{"FINANZUEBERSICHT", "KOSTENSTELLENLISTE", "GESCHAEFTSPARTNERLISTE"};
+                    prompt = "Finanzen";
                     break;
             }
-            if (tableName.equals("Kostenstelleliste")) {
-                buttonComboBox.getChildrenUnmodifiable().add(currentButton);
+            if (!prompt.equals("")) {
+                ComboBox buttonComboBox = createComboBox(dropDownValues, prompt);
                 vbox.getChildren().add(buttonComboBox);
             }
-            if (tableName.equals("Geschaeftspartnerliste")) {
-                vbox.getChildren().add(currentButton);
-            }
+
+//            if (tableName.equals("Kostenstelleliste")) {
+//                buttonComboBox.getChildrenUnmodifiable().add(currentButton);
+//                vbox.getChildren().add(buttonComboBox);
+//            }
+//            if (tableName.equals("Geschaeftspartnerliste")) {
+//                vbox.getChildren().add(currentButton);
+//            }
         }
         return vbox;
+    }
+
+    private ComboBox createComboBox(String[] values, String prompt) {
+        for (int j = 0; j < values.length; j++) {
+            values[j] = capitalize(values[j]);
+        }
+        ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(values));
+        inventarComboBox.valueProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+            }
+        });
+
+        inventarComboBox.setPromptText(prompt);
+
+        return inventarComboBox;
     }
 //
 //
@@ -329,7 +355,8 @@ public class UIController {
 
     private VBox createRightNavigation() {
         VBox vbox = null;
-        if (!table.editable()) {
+        // Views
+        if (!table.editable() && !table.displayButtons.isEmpty()) {
             vbox = new VBox();
             vbox.setPadding(new Insets(10)); // Set all sides to 10
             vbox.setSpacing(8);              // Gap between nodes
@@ -345,24 +372,40 @@ public class UIController {
             flow.setPrefWrapLength(170); // preferred width allows for two columns
             flow.setStyle("-fx-background-color: DAE6F3;");
 
-            ImageView pie = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_1.png")));
-            pie.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent event) {
-                    showPieChart();
+            for (String button : table.displayButtons) {
+                switch (button) {
+                    case "PIECHART":
+                        ImageView pie = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_1.png")));
+                        pie.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                            @Override
+                            public void handle(MouseEvent event) {
+                                showPieChart();
+                            }
+                        });
+                        flow.getChildren().add(pie);
+                        break;
+                    case "BARCHART":
+                        ImageView bar = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_3.png")));
+                        bar.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                            @Override
+                            public void handle(MouseEvent event) {
+                                showBarChart();
+                            }
+                        });
+                        flow.getChildren().add(bar);
+                        break;
                 }
-            });
-            ImageView bar = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_3.png")));
-            bar.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent event) {
-                    showBarChart();
-                }
-            });
-
-            flow.getChildren().add(pie);
-            flow.getChildren().add(bar);
-            vbox.getChildren().add(flow);
+            }
+                ImageView data = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_4.png")));
+                data.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent event) {
+                        refreshDatabaseView();
+                    }
+                });
+                flow.getChildren().add(data);
+                vbox.getChildren().add(flow);
+            // Tables
         } else if (!table.mToNTables.isEmpty()) {
             vbox = new VBox();
             vbox.setPadding(new Insets(10)); // Set all sides to 10
@@ -427,8 +470,7 @@ public class UIController {
         buttonLoeschen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                int row = dataMatrixListView.getSelectionModel().getSelectedIndex();
-                entryManager.removeEntry(row);
+                entryManager.removeEntry(currentSelectedRow);
                 refreshDatabaseView();
             }
         });
@@ -525,7 +567,8 @@ public class UIController {
         };
 
         for (int i = 1; i < entryManager.size(); i++) {
-            pieChartData.add(new PieChart.Data(entryManager.getEntry(i).get(0), 22));
+            PieChart.Data data = new PieChart.Data(entryManager.getEntry(i).get(0), 22);
+            pieChartData.add(data);
         }
         final PieChart chart = new PieChart(pieChartData);
         chart.setTitle(table.toString());
@@ -573,6 +616,12 @@ public class UIController {
 
         bc.getData().addAll(series1, series2, series3);
         border.setCenter(bc);
+    }
+
+    private String capitalize(String s) {
+        String first = s.substring(0, 1).toUpperCase();
+        String after = s.substring(1, s.length()).toLowerCase();
+        return first + after;
     }
 
     public void closeDatabaseConnection() {

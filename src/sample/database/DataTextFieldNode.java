@@ -22,24 +22,26 @@ public class DataTextFieldNode extends TextField {
         setPrefHeight(20);
         setPrefWidth(150);
         setAlignment(Pos.CENTER);
-        textProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                changed = true;
+        if (isEditable()) {
+            textProperty().addListener(new ChangeListener<String>() {
+                @Override
+                public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                    changed = true;
 
-                setText(newValue);
-                TextField defaultTextField = new TextField();
-                if (nullable) {
-                    if (!newValue.equals("")) {
-                        setStyle(defaultTextField.getStyle());
-                    } else {
-                        mark();
+                    setText(newValue);
+                    TextField defaultTextField = new TextField();
+                    if (nullable) {
+                        if (!newValue.equals("")) {
+                            setStyle(defaultTextField.getStyle());
+                        } else {
+                            mark();
+                        }
                     }
+                    //System.out.println("NODE(ROW-COL): " + row + " " + col + ", VAL: " + newValue);
+                    //tf.setPrefWidth(tf.getWidth() + 2); //TODO dynamische verbreitung je nach textlänge
                 }
-                //System.out.println("NODE(ROW-COL): " + row + " " + col + ", VAL: " + newValue);
-                //tf.setPrefWidth(tf.getWidth() + 2); //TODO dynamische verbreitung je nach textlänge
-            }
-        });
+            });
+        }
 //        setOnMouseClicked(new EventHandler<MouseEvent>() {
 //            @Override
 //            public void handle(MouseEvent event) {

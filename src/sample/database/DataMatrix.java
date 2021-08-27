@@ -46,7 +46,7 @@ public class DataMatrix {
             DataTextFieldNode tf = new DataTextFieldNode(col++, row);
             tf.setText(s);
             tf.initialVal = s;
-            tf.setEditable(true);
+            tf.setEditable(editable);
             textFields.add(tf);
             tf.setChanged(false);
         }
@@ -174,10 +174,10 @@ public class DataMatrix {
                 for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
                     // iterate through each row with corresponding column name
                     if (matrix.get(0).get(column).getText().equals(keys.get(keyIndex))) {
-                        keyValues.add(1);
+                        keyValues.add(0);
                         for (int row = 1; row < matrix.size(); row++) {
                             String text = matrix.get(row).get(column).getText();
-                            if (text.equals("")) text = "1";
+                            if (text.equals("")) text = "0";
                             int val = Integer.parseInt(text);
                             if (keyValues.get(keyIndex) <= val) keyValues.set(keyIndex, val);
                         }

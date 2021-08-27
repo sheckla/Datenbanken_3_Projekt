@@ -20,7 +20,7 @@ public class TableCreator {
 
             //TODO Aufgabe -> Menge eingeben -> Inventargegenstand auswählen
             switch (table.toString()) {     //todo Beim einfügen von Einträgen Checkboxen und Dropdownmenüs mit zuletzt eingetragenen Daten vorschlagen
-                case "MASCHINE":
+                case "MASCHINE": // TODO checkmarker -  bis hier funktionierts
                     table.preFillTables.add("STANDORT");
                     table.preFillTables.add("INVENTARGEGENSTAND");
                     table.iterableKeyValues.add("SN");
@@ -45,7 +45,7 @@ public class TableCreator {
                 case "GESCHAEFTSPARTNER":
                     table.preFillTables.add("STANDORT");
                     break;
-                case "PERSONAL": // TODO checkmarker -  bis hier funktionierts
+                case "PERSONAL":
                     table.preFillTables.add("STANDORT");
                     table.defaultSysdate.add("EINSTELLUNGSDATUM");
                     table.iterableKeyValues.add("MITARBEITERNR");
@@ -61,7 +61,7 @@ public class TableCreator {
                     table.preFillTables.add("KOSTENSTELLE");
                     table.preFillTables.add("FELDAUFGABE");
                     table.preFillTables.add("WARTUNG");
-                    table.preFillTables.add("VERTIEB");
+                    table.preFillTables.add("VERTRIEB");
                     table.preFillTables.add("SONSTIGES");
                     table.defaultSysdate.add("ERSTELLDATUM");
                     table.decimalValues.add("BETRAG");
@@ -110,11 +110,9 @@ public class TableCreator {
 
         }
 
-        for (int i = 22; i < 22; i++) { //views
+        for (int i = 22; i < 22+17; i++) { //views
             TableView table = new TableView(Table.values()[i].toString(), false);
             tableMap.put(table.toString(), table);
-            table.displayButtons.add("BARCHART");
-            table.displayButtons.add("PIECHART");
 
             switch (table.toString()) { //todo überlegen welche diagramme für welche views relevant sind
                 case "AUFGABENBEREICHE":
