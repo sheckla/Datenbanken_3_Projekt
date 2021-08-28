@@ -47,6 +47,8 @@ public class JDBCDatabase {
             for (int i = 1; i <= rsmd.getColumnCount(); i++) {
                 columns.add(rsmd.getColumnName(i));
             }
+            rs.close();
+            st.close();
         } catch (Exception e) {
             exceptionMessageHandle(e);
         }
@@ -77,6 +79,8 @@ public class JDBCDatabase {
                 }
                 entries.add(row);
             }
+            statement.close();
+            resultSet.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -96,6 +100,8 @@ public class JDBCDatabase {
             while (resultSet.next()) {
                 totalEntries++;
             }
+            statement.close();
+            resultSet.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -149,6 +155,7 @@ public class JDBCDatabase {
             String sql = "DELETE FROM " + table.toString() + " WHERE " + primaryKey + " = '" + val + "'";
             System.out.println(sql);
             st.executeQuery(sql);
+            st.close();
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
@@ -274,6 +281,8 @@ public class JDBCDatabase {
             while (rs.next()) {
                 keys.add(rs.getString("COLUMN_NAME"));
             }
+            st.close();
+            rs.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -293,6 +302,8 @@ public class JDBCDatabase {
                     nullables.add(false);
                 }
             }
+            st.close();
+            rs.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

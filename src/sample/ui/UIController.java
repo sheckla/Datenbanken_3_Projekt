@@ -60,8 +60,14 @@ public class UIController {
     public BorderPane createUI() {
         //Borderpane https://docs.oracle.com/javafx/2/layout/builtin_layouts.htm
         border = new BorderPane();
-        border.setTop(createTopNavigation());
-        border.setLeft(createLeftNavigation());
+        ScrollPane topScroll = new ScrollPane(createTopNavigation());
+        topScroll.setFitToHeight(true);
+        topScroll.setFitToWidth(true);
+        border.setTop(topScroll);
+        ScrollPane leftScroll = new ScrollPane(createLeftNavigation());
+        leftScroll.setFitToWidth(true);
+        topScroll.setFitToHeight(true);
+        border.setLeft(leftScroll);
         border.setRight(createRightNavigation());
         border.setBottom(createBottomNavigation());
         return border;
@@ -627,4 +633,5 @@ public class UIController {
     public void closeDatabaseConnection() {
         jdbc.close();
     }
+
 }

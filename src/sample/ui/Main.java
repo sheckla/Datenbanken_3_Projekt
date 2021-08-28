@@ -10,8 +10,8 @@ import javafx.stage.WindowEvent;
 import sample.database.Table;
 
 public class Main extends Application {
-    final int APP_WIDTH = 1900;
-    final int APP_HEIGHT = 1300;
+    final int APP_WIDTH = 1400;
+    final int APP_HEIGHT = 900;
     UIController uiController;
 
     @Override

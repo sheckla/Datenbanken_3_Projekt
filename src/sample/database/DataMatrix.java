@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 public class DataMatrix {
     private ArrayList<ArrayList<DataTextFieldNode>> matrix;
+    private ComboBox<String> comboBox;
+    private boolean editable = true;
 
     // TODO Views nicht editierbar
     public DataMatrix() {
