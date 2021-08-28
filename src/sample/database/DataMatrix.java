@@ -1,5 +1,8 @@
 package sample.database;
 
+import javafx.scene.control.ComboBox;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class DataMatrix {
@@ -217,4 +220,55 @@ public class DataMatrix {
     public void clear() {
         matrix.clear();
     }
+
+    public void setEditable(Boolean b) {this.editable = b;}
+
+    public String curTime() {
+        LocalDateTime date = LocalDateTime.now();
+        String hour = Integer.toString(date.getHour());
+        String minutes = Integer.toString(date.getMinute());
+        if (hour.length() <= 1) {
+            hour = 0 + hour;
+        }
+        if (minutes.length() <= 1) {
+            minutes = 0 + minutes;
+        }
+        String time = hour + ":" + minutes;
+        return time;
+    }
+
+    // formats date to fit for oracle database insert
+    public String curDateTime() {
+        LocalDateTime date = LocalDateTime.now();
+        String month = date.getMonthValue() + "";
+        String day = date.getDayOfMonth() + "";
+        String hour = date.getHour() + "";
+        String minute = date.getMinute() + "";
+        String second = date.getSecond() + "";
+        String dateTime = date.getYear() + "-" + formatDateValue(month,2) + "-" + formatDateValue(day,2) + " " + formatDateValue(hour,2) +
+                ":" + formatDateValue(minute,2) + ":" + formatDateValue(second,2) + ".0";
+        return dateTime;
+    }
+
+    // fills date value with zeros in front of it (fillTo)
+    // 6
+    // becomes
+    // 06
+    private String formatDateValue(String val, int fillTo) {
+        for (int i = 0; i < fillTo - val.length(); i++) {
+            val = "0" + val;
+        }
+        return val;
+    }
+
+
+    public void setComboBox(ComboBox comboBox){
+        this.comboBox = comboBox;
+    }
+
+    public void setTextWithCB (ComboBox<String> comboBox){
+        //addEntry(comboBox.getValue());
+    }
+
+
 }
