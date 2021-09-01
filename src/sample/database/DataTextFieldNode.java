@@ -43,12 +43,6 @@ public class DataTextFieldNode extends TextField {
                 }
             });
         }
-//        setOnMouseClicked(new EventHandler<MouseEvent>() {
-//            @Override
-//            public void handle(MouseEvent event) {
-//                System.out.println("its me");
-//            }
-//        });
         setText("");
         this.col = col;
         this.row = row;

@@ -60,7 +60,9 @@ public class UIController {
     }
 
     public BorderPane createUI() {
-        //Borderpane https://docs.oracle.com/javafx/2/layout/builtin_layouts.htm
+        //Borderpane https://docs.oracle.com/javafx/2/layout/builtin_l
+        // layouts.htm
+        table = tableMap.get("AUFGABE");
         border = new BorderPane();
         ScrollPane topScroll = new ScrollPane(createTopNavigation());
         topScroll.setFitToHeight(true);
@@ -75,22 +77,39 @@ public class UIController {
         return border;
     }
 
-    public void changeTable(TableView table) {
+    public void changeTableDialog(TableView table) {
+        // change occured -> ask if change is to be discarded
+        if (entryManager.isChanged()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Änderungen verwerfen?");
+            alert.setContentText("Sie haben noch ungespeicherte Änderungen.\n" +
+                    "Möchten Sie diese verwerfen und zur ausgewählten Tabelle wechseln?");
+            ButtonType okButton = new ButtonType("Ja", ButtonBar.ButtonData.YES);
+            ButtonType noButton = new ButtonType("Nein", ButtonBar.ButtonData.NO);
+            alert.getButtonTypes().setAll(okButton, noButton);
+            alert.showAndWait().ifPresent(type -> {
+                if (type == okButton) changeToTable(table);
+            });
+        } else {
+            // no change occured -> normal table switch
+            changeToTable(table);
+        }
+    }
+
+    // initializes all class variables and parsed table
+    private void changeToTable(TableView table) {
         this.table = table;
-        inputHappened = false;
-        searchField.setText("");
         currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected"));
         entryManager.changeTable(table);
         entryManager.pullData();
         border.setCenter(createDatabaseView());
         border.setRight(createRightNavigation());
-        debug.setText(dataMatrixListView.getSelectionModel().getSelectedIndex() + "");
         updatedTime.setText(entryManager.curTime());
+        searchField.setText("");
     }
 
     private void refreshDatabaseView() {
         currentStatement.setText("");
-        debug.setText(dataMatrixListView.getSelectionModel().getSelectedIndex() + "");
         border.setCenter(createDatabaseView());
     }
 
@@ -159,7 +178,7 @@ public class UIController {
         buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                changeTable(tableMap.get("AUFGABE"));
+                changeTableDialog(tableMap.get("AUFGABE"));
             }
         });
 
@@ -168,7 +187,7 @@ public class UIController {
         buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                changeTable(tableMap.get("PERSONAL"));
+                changeTableDialog(tableMap.get("PERSONAL"));
             }
         });
 
@@ -177,7 +196,7 @@ public class UIController {
         buttonMaschine.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                changeTable(tableMap.get("MASCHINE"));
+                changeTableDialog(tableMap.get("MASCHINE"));
             }
         });
 
@@ -186,7 +205,7 @@ public class UIController {
         buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                changeTable(tableMap.get(table.correspondingTables.get(0)));
+                changeTableDialog(tableMap.get(table.correspondingTables.get(0)));
             }
         });
 
@@ -196,7 +215,7 @@ public class UIController {
         inventarComboBox.valueProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+                changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
             }
         });
         TilePane tilePane = new TilePane(inventarComboBox);
@@ -225,8 +244,7 @@ public class UIController {
             currentButton.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    System.out.println(entryManager.isChanged()); // TODO popup window für "Änderung verwerfen"
-                    changeTable(tableMap.get(table.toString()));
+                    changeTableDialog(tableMap.get(table.toString()));
                 }
             });
             hbox1.getChildren().add(currentButton);
@@ -247,7 +265,7 @@ public class UIController {
             currentButton.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTable(tableMap.get(table.toString()));
+                    changeTableDialog(tableMap.get(table.toString()));
                 }
             });
             hbox2.getChildren().add(currentButton);
@@ -277,7 +295,7 @@ public class UIController {
             currentButton.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTable(tableMap.get(table.toString()));
+                    changeTableDialog(tableMap.get(table.toString()));
                 }
             });
 
@@ -327,7 +345,7 @@ public class UIController {
         inventarComboBox.valueProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+                changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
             }
         });
 
@@ -335,34 +353,6 @@ public class UIController {
 
         return inventarComboBox;
     }
-//
-//
-//        for(
-//    int i = 22;
-//    i< 22;i++)
-//
-//    {
-//        TableView table = new TableView(Table.values()[i].toString(), false);
-//        String first = table.toString().substring(0, 1).toUpperCase();
-//        String after = table.toString().substring(1, table.toString().length()).toLowerCase();
-//        String tableName = first + after;
-//
-//        Button currentButton = new Button(tableName);
-//        currentButton.setPrefSize(200, 20);
-//        currentButton.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) {
-//                changeTable(tableMap.get(table.toString()));
-//                secondClick = true;
-//            }
-//        });
-//
-//
-//        vbox.getChildren().add(currentButton);
-//
-//    }
-//        return vbox;
-//}
 
     private VBox createRightNavigation() {
         VBox vbox = null;
@@ -407,15 +397,15 @@ public class UIController {
                         break;
                 }
             }
-                ImageView data = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_4.png")));
-                data.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent event) {
-                        refreshDatabaseView();
-                    }
-                });
-                flow.getChildren().add(data);
-                vbox.getChildren().add(flow);
+            ImageView data = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_4.png")));
+            data.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    refreshDatabaseView();
+                }
+            });
+            flow.getChildren().add(data);
+            vbox.getChildren().add(flow);
             // Tables
         } else if (!table.mToNTables.isEmpty()) {
             vbox = new VBox();
@@ -434,7 +424,7 @@ public class UIController {
                 @Override
                 public void handle(ActionEvent event) {
                     tableClickHandler.setButtonClicked(true);
-                    changeTable(tableMap.get(table.correspondingTables.get(0)));
+                    changeTableDialog(tableMap.get(table.correspondingTables.get(0)));
                     dataTitle.setText("Zweiten Eintrag auswählen");
                 }
             });
@@ -457,6 +447,7 @@ public class UIController {
             @Override
             public void handle(MouseEvent event) {
                 if (!searchField.getText().equals("")) {
+                    entryManager.pullData();
                     entryManager.searchByKeyword(searchField.getText());
                     refreshDatabaseView();
                 }
@@ -465,6 +456,7 @@ public class UIController {
         searchBox.getChildren().add(searchField);
         searchBox.getChildren().add(searchCommitButton);
 
+        // Database actions buttons
         HBox databaseButtons = new HBox();
         databaseButtons.setPadding(new Insets(15, 12, 15, 12));
         databaseButtons.setSpacing(10);   // Gap between nodes
@@ -519,7 +511,6 @@ public class UIController {
         tableLable.setPadding(new Insets(15, 12, 15, 12));
         tableLable.setSpacing(10);   // Gap between nodes
         tableLable.getChildren().add(currentSelectedTable);
-        //hBox2.getChildren().add();
 
         // data pulled date
         tableLable.setPadding(new Insets(15, 12, 15, 12));
@@ -530,7 +521,6 @@ public class UIController {
         root.getChildren().add(databaseButtons);
         root.getChildren().add(tableLable);
         root.getChildren().add(currentStatement);
-        root.getChildren().add(debug);
         return root;
     }
 
@@ -539,7 +529,7 @@ public class UIController {
         if (tableClickHandler.isSecondClick()) {
             tableClickHandler.setSecondClick(false);
             tableClickHandler.setSecondEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
-            changeTable(tableMap.get("BEINHALTET"));
+            changeTableDialog(tableMap.get("BEINHALTET"));
 
             tableClickHandler.setnToMColumns(jdbc.getColumnNames(table.toString()));
             System.out.println("selected entries are:");
@@ -556,9 +546,7 @@ public class UIController {
                 nodes.get(i).setText(selectedUserValues.get(i));
             }
         } else {
-            System.out.println("First Click");
             tableClickHandler.setFirstEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
-            System.out.println(tableClickHandler.getFirstRow());
         }
     }
 
@@ -647,7 +635,7 @@ public class UIController {
 
     private String capitalize(String s) {
         String first = s.substring(0, 1).toUpperCase();
-        String after = s.substring(1, s.length()).toLowerCase();
+        String after = s.substring(1).toLowerCase();
         return first + after;
     }
 

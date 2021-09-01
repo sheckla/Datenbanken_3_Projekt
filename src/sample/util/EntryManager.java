@@ -44,7 +44,7 @@ public class EntryManager {
     }
 
     public int size() {
-        return entries.size();
+        return entries.rowSize();
     }
 
     public ArrayList<DataTextFieldNode> getNodeEntry(int row) {
@@ -69,21 +69,21 @@ public class EntryManager {
                 entries.markNullables(nullables, row - 1); // not-null felder werden ohne eintrag rot angezeigt
                 entries.replaceDecimalValues(table.decimalValues); // punkt zu komma
             }
-            newEntriesIndex = entries.size();
+            newEntriesIndex = entries.rowSize();
         }
         createNewEntry();
         //curDateTime();
     }
 
     public void commit() {
-        for (int i = newEntriesIndex; i < entries.size(); i++) {
+        for (int i = newEntriesIndex; i < entries.rowSize(); i++) {
             //System.out.println("size" + (entries.size() - newEntriesIndex));
             String insertResultText = jdbc.insert(table.toString(), entries.getEntry(i), table.preFillTables);
             //currentStatement.setText("Commit erfolgreich!");
             //if (!insertResultText.equals("")) currentStatement.setText(insertResultText);
         }
 
-        for (int i = 0; i < deletedEntries.size(); i++) {
+        for (int i = 0; i < deletedEntries.rowSize(); i++) {
             String val = deletedEntries.getVal(0, i);
             jdbc.delete(table.toString(), val);
         }
@@ -100,7 +100,7 @@ public class EntryManager {
     }
 
     public void removeEntry(int row) {
-        deletedEntries.addEntry(entries.getEntry(row), deletedEntries.size());
+        deletedEntries.addEntry(entries.getEntry(row), deletedEntries.rowSize());
         entries.removeEntry(row);
     }
 
@@ -110,9 +110,6 @@ public class EntryManager {
         if (table.editable()) {
             entries.addEmptyEntry(jdbc.getNullables(table.toString()), jdbc.getColumnSize(table.toString()));
             ArrayList<String> columns = jdbc.getColumnNames(table.toString());
-            if (table.toString().equals("MASCHINE")) {
-                System.out.println();
-            }
             ArrayList<String> nextAvailableKeys = entries.getNextAvailableKeys(table.iterableKeyValues);
             ArrayList<String> keys = table.iterableKeyValues;
             //mark for ComboBox
@@ -159,8 +156,7 @@ public class EntryManager {
                     }
                 }
             }
-            System.out.println(nextAvailableKeys);
-            entries.fillSysDateValues(table.defaultSysdate, entries.size() - 1);
+            entries.fillSysDateValues(table.defaultSysdate, entries.rowSize() - 1);
             // TODO Aufgabe -> kein eintrag vorhanden -> neue eintrag key started bei 2 anstatt 1
             // fill next iterable key-value of table
             for (int column = 0; column < columns.size(); column++) {
@@ -180,7 +176,7 @@ public class EntryManager {
     }
 
     public boolean isChanged() {
-        return !entries.locateChangedEntries(entries.size()).isEmpty();
+        return !entries.locateChangedEntries(entries.rowSize()).isEmpty();
     }
 
     public String curTime() {

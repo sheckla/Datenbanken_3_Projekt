@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class DataMatrix {
-    private ArrayList<ArrayList<DataTextFieldNode>> matrix;
+    private ArrayList<ArrayList<DataTextFieldNode>> matrix; // column-titles are row: 0
     private ComboBox<String> comboBox;
     private boolean editable = true;
 
@@ -29,18 +29,18 @@ public class DataMatrix {
     }
 
     public void searchByKeyword(String keyword) {
-        ArrayList<ArrayList<DataTextFieldNode>> notContaining = new ArrayList<>();
-
+        ArrayList<ArrayList<DataTextFieldNode>> containing = new ArrayList<>();
+        containing.add(matrix.get(0)); // add columns names as first row
         for (int row = 1; row < matrix.size(); row++) {
             for (int col = 0; col < matrix.get(0).size(); col++) {
                 if (matrix.get(row).get(col).getText().contains(keyword)) {
-                    notContaining.add(matrix.get(row));
+                    containing.add(matrix.get(row));
                     break;
                 }
             }
         }
         
-        matrix = notContaining;
+        matrix = containing;
     }
 
     public ArrayList<String> getEntry(int row) {
@@ -164,10 +164,7 @@ public class DataMatrix {
         for (int col = 0; col < columns.size(); col++) {
             for (int j = 0; j < sysDateValues.size(); j++) {
                 if (columns.get(col).equals(sysDateValues.get(j))) {
-//                    for (int row = 1; row < matrix.size(); row++) {
-//                        System.out.println("sysdate");
                     matrix.get(row).get(col).setText(curDateTime());
-//                    }
                 }
             }
         }
@@ -178,11 +175,6 @@ public class DataMatrix {
         ArrayList<String> entry = new ArrayList<>();
         for (DataTextFieldNode node : matrix.get(row)) {
             entry.add(node.initialVal);
-//            if (node.initialVal.equals("")) {
-//                entry.add("");
-//            } else {
-//                entry.add(node.initialVal);
-//            }
         }
         return entry;
     }
@@ -228,7 +220,7 @@ public class DataMatrix {
         return changed;
     }
 
-    public int size() {
+    public int rowSize() {
         return matrix.size();
     }
 
