@@ -28,6 +28,21 @@ public class DataMatrix {
         matrix.add(entry);
     }
 
+    public void searchByKeyword(String keyword) {
+        ArrayList<ArrayList<DataTextFieldNode>> notContaining = new ArrayList<>();
+
+        for (int row = 1; row < matrix.size(); row++) {
+            for (int col = 0; col < matrix.get(0).size(); col++) {
+                if (matrix.get(row).get(col).getText().contains(keyword)) {
+                    notContaining.add(matrix.get(row));
+                    break;
+                }
+            }
+        }
+        
+        matrix = notContaining;
+    }
+
     public ArrayList<String> getEntry(int row) {
         ArrayList<String> entry = new ArrayList<>();
         for (int i = 0; i < matrix.get(row).size(); i++) {
@@ -151,7 +166,7 @@ public class DataMatrix {
                 if (columns.get(col).equals(sysDateValues.get(j))) {
 //                    for (int row = 1; row < matrix.size(); row++) {
 //                        System.out.println("sysdate");
-                        matrix.get(row).get(col).setText(curDateTime());
+                    matrix.get(row).get(col).setText(curDateTime());
 //                    }
                 }
             }
@@ -200,9 +215,9 @@ public class DataMatrix {
         return null;
     }
 
-    public ArrayList<Integer> locateChangedEntries(int from) {
+    public ArrayList<Integer> locateChangedEntries(int to) {
         ArrayList<Integer> changed = new ArrayList<>();
-        for (int i = 1; i < from; i++) { // TODO indexfehler beime löschen,aber wirkt sich nicht auf funktionalität aus
+        for (int i = 1; i < to; i++) { // TODO indexfehler beime löschen,aber wirkt sich nicht auf funktionalität aus
             for (DataTextFieldNode node : matrix.get(i)) {
                 if (node.changed()) {
                     changed.add(i);
@@ -221,7 +236,9 @@ public class DataMatrix {
         matrix.clear();
     }
 
-    public void setEditable(Boolean b) {this.editable = b;}
+    public void setEditable(Boolean b) {
+        this.editable = b;
+    }
 
     public String curTime() {
         LocalDateTime date = LocalDateTime.now();
@@ -245,8 +262,8 @@ public class DataMatrix {
         String hour = date.getHour() + "";
         String minute = date.getMinute() + "";
         String second = date.getSecond() + "";
-        String dateTime = date.getYear() + "-" + formatDateValue(month,2) + "-" + formatDateValue(day,2) + " " + formatDateValue(hour,2) +
-                ":" + formatDateValue(minute,2) + ":" + formatDateValue(second,2) + ".0";
+        String dateTime = date.getYear() + "-" + formatDateValue(month, 2) + "-" + formatDateValue(day, 2) + " " + formatDateValue(hour, 2) +
+                ":" + formatDateValue(minute, 2) + ":" + formatDateValue(second, 2) + ".0";
         return dateTime;
     }
 
@@ -262,11 +279,11 @@ public class DataMatrix {
     }
 
 
-    public void setComboBox(ComboBox comboBox){
+    public void setComboBox(ComboBox comboBox) {
         this.comboBox = comboBox;
     }
 
-    public void setTextWithCB (ComboBox<String> comboBox){
+    public void setTextWithCB(ComboBox<String> comboBox) {
         //addEntry(comboBox.getValue());
     }
 

@@ -175,6 +175,14 @@ public class EntryManager {
         }
     }
 
+    public void searchByKeyword(String keyword) {
+        entries.searchByKeyword(keyword);
+    }
+
+    public boolean isChanged() {
+        return !entries.locateChangedEntries(entries.size()).isEmpty();
+    }
+
     public String curTime() {
         return entries.curTime();
     }

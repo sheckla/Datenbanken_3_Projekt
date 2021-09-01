@@ -10,12 +10,13 @@ import javafx.stage.WindowEvent;
 import sample.database.Table;
 
 public class Main extends Application {
-    final int APP_WIDTH = 1400;
-    final int APP_HEIGHT = 900;
+    final int APP_WIDTH = 1100;
+    final int APP_HEIGHT = 500;
     UIController uiController;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
 
         uiController = new UIController();

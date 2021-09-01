@@ -39,6 +39,7 @@ public class UIController {
     private Label updatedTime = new Label("");
     private Label currentStatement = new Label("");
     private Label debug = new Label("");
+    private TextField searchField = new TextField("");
 
 
     // TODO textfield -> row anzeigen per col/row
@@ -50,6 +51,7 @@ public class UIController {
     private ArrayList<TableView> tableViews = new ArrayList<>();
     private HashMap<String, TableView> tableMap = TableCreator.createTables();
     private int currentSelectedRow = 0;
+    private boolean inputHappened = false;
 
     public UIController() {
         jdbc = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
@@ -75,6 +77,8 @@ public class UIController {
 
     public void changeTable(TableView table) {
         this.table = table;
+        inputHappened = false;
+        searchField.setText("");
         currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected"));
         entryManager.changeTable(table);
         entryManager.pullData();
@@ -221,6 +225,7 @@ public class UIController {
             currentButton.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
+                    System.out.println(entryManager.isChanged()); // TODO popup window für "Änderung verwerfen"
                     changeTable(tableMap.get(table.toString()));
                 }
             });
@@ -444,10 +449,26 @@ public class UIController {
         root.setSpacing(8);
         root.setPadding(new Insets(15, 12, 15, 12));
 
-        HBox hbox = new HBox();
-        hbox.setPadding(new Insets(15, 12, 15, 12));
-        hbox.setSpacing(10);   // Gap between nodes
-        hbox.setStyle("-fx-background-color: #FFFFFF;");
+        // Search field
+        HBox searchBox = new HBox();
+        searchField = new TextField("");
+        Button searchCommitButton = new Button("Nach Wert suchen");
+        searchCommitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (!searchField.getText().equals("")) {
+                    entryManager.searchByKeyword(searchField.getText());
+                    refreshDatabaseView();
+                }
+            }
+        });
+        searchBox.getChildren().add(searchField);
+        searchBox.getChildren().add(searchCommitButton);
+
+        HBox databaseButtons = new HBox();
+        databaseButtons.setPadding(new Insets(15, 12, 15, 12));
+        databaseButtons.setSpacing(10);   // Gap between nodes
+        databaseButtons.setStyle("-fx-background-color: #FFFFFF;");
 
         Button buttonEinfuegen = new Button("Neuer Eintrag");
         buttonEinfuegen.setPrefSize(100, 20);
@@ -491,23 +512,23 @@ public class UIController {
             }
         });
 
-        hbox.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren);
+        databaseButtons.getChildren().addAll(buttonEinfuegen, buttonCommit, buttonLoeschen, buttonAktualisieren);
+
         //Tabellen label einfügen
-        HBox hBox2 = new HBox();
-        hBox2.setPadding(new Insets(15, 12, 15, 12));
-        hBox2.setSpacing(10);   // Gap between nodes
-        hBox2.getChildren().add(currentSelectedTable);
+        HBox tableLable = new HBox();
+        tableLable.setPadding(new Insets(15, 12, 15, 12));
+        tableLable.setSpacing(10);   // Gap between nodes
+        tableLable.getChildren().add(currentSelectedTable);
         //hBox2.getChildren().add();
 
         // data pulled date
-        hBox2.setPadding(new Insets(15, 12, 15, 12));
-        hBox2.setSpacing(10);   // Gap between nodes
-        hBox2.getChildren().add(updatedTime);
-        //hBox2.getChildren().add();
+        tableLable.setPadding(new Insets(15, 12, 15, 12));
+        tableLable.setSpacing(10);   // Gap between nodes
+        tableLable.getChildren().add(updatedTime);
 
-        root.getChildren().add(hbox);
-        root.getChildren().add(hBox2);
-        //currentStatement.setStyle("-fx-text-box-border: #B22222; -fx-focus-color: #B22222;");
+        root.getChildren().add(searchBox);
+        root.getChildren().add(databaseButtons);
+        root.getChildren().add(tableLable);
         root.getChildren().add(currentStatement);
         root.getChildren().add(debug);
         return root;
