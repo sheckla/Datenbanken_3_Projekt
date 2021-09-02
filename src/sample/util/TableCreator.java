@@ -41,6 +41,8 @@ public class TableCreator {
                     table.preFillTables.add("INVENTARGEGENSTAND");
                     table.iterableKeyValues.add("INVENTARNR");
                     table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
+                    table.mToNTables.add("GELAGERT_IN");
+                    table.correspondingTables.add("STANDORT");
                     break;
                 case "GESCHAEFTSPARTNER":
                     table.preFillTables.add("STANDORT");
@@ -67,7 +69,7 @@ public class TableCreator {
                     table.decimalValues.add("BETRAG");
                     table.iterableKeyValues.add("AUFGABENNR");
                     table.mToNTables.add("BEINHALTET");
-                    table.correspondingTables.add("INVENTARGEGENSTAND");
+                    table.correspondingTables.add("INVENTARLISTE");
                     break;
                 case "KOSTENSTELLE":
                     table.iterableKeyValues.add("Kostenstelle");
@@ -75,8 +77,6 @@ public class TableCreator {
                 case "ZUSTAND":
                     break;
                 case "INVENTARGEGENSTAND":
-                    table.mToNTables.add("BEINHALTET");
-                    table.correspondingTables.add("AUFGABE");
                     break;
                 case "FELDAUFGABE":
                     break;
@@ -103,6 +103,10 @@ public class TableCreator {
                     table.preFillTables.add("VORRAETE");
                     table.decimalValues.add("MENGE");
                     break;
+                case "STANDORT":
+                    table.mToNTables.add("GELAGERT_IN");
+                    table.correspondingTables.add("VORRAETE");
+                    break;
 
 
             }
@@ -110,13 +114,17 @@ public class TableCreator {
 
         }
 
-        for (int i = 22; i < 22+17; i++) { //views
+        for (int i = 22; i < 22+18; i++) { //views
             TableView table = new TableView(Table.values()[i].toString(), false);
             tableMap.put(table.toString(), table);
 
             switch (table.toString()) { //todo überlegen welche diagramme für welche views relevant sind
                 case "AUFGABENBEREICHE":
                     table.displayButtons.add("BARCHART");
+                    break;
+                case "INVENTARLISTE":
+                    table.mToNTables.add("BEINHALTET");
+                    table.correspondingTables.add("AUFGABE");
                     break;
             }
         }

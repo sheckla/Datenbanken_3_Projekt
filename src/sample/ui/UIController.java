@@ -284,7 +284,7 @@ public class UIController {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(title);
 
-        for (int i = 22; i < 22 + 17; i++) {
+        for (int i = 22; i < 22 + 18; i++) {
             TableView table = new TableView(Table.values()[i].toString(), false);
             String first = table.toString().substring(0, 1).toUpperCase();
             String after = table.toString().substring(1, table.toString().length()).toLowerCase();
@@ -313,7 +313,7 @@ public class UIController {
                     prompt = "Personal";
                     break;
                 case "Aufgabenbereiche":
-                    dropDownValues = new String[]{"AUFGABENBEREICHE", "AUFGABENLISTE", "AUFGABENVERTEILUNG", "TAETIGKEITENUEBERSICHT"};
+                    dropDownValues = new String[]{"AUFGABENUEBERSICHT","AUFGABENBEREICHE", "AUFGABENLISTE", "AUFGABENVERTEILUNG", "TAETIGKEITENUEBERSICHT"};
                     prompt = "Aufgabenbereiche";
                     break;
                 case "Finanzübersicht":
@@ -529,7 +529,7 @@ public class UIController {
         if (tableClickHandler.isSecondClick()) {
             tableClickHandler.setSecondClick(false);
             tableClickHandler.setSecondEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
-            changeTableDialog(tableMap.get("BEINHALTET"));
+            changeTableDialog(tableMap.get("GELAGERT_IN"));
 
             tableClickHandler.setnToMColumns(jdbc.getColumnNames(table.toString()));
             System.out.println("selected entries are:");
