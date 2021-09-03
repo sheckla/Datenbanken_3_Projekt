@@ -112,23 +112,9 @@ public class EntryManager {
             ArrayList<String> columns = jdbc.getColumnNames(table.toString());
             ArrayList<String> nextAvailableKeys = entries.getNextAvailableKeys(table.iterableKeyValues);
             ArrayList<String> keys = table.iterableKeyValues;
-            //mark for ComboBox
-//        ArrayList<String> comboBoxMarker = new ArrayList<>();
-//        comboBoxMarker.add("SEX");
-//
-//        for(String name : columns){
-//            for(String markerName : comboBoxMarker){
-//                if(name.equals(markerName));
-//                ComboBox comboBox= new ComboBox();
-//                entries.add
-//            }
-//        }
-
 
             // ID_table keys
             sample.database.DataMatrix inventargegenstand = new DataMatrix();
-
-
 
             // get free key value from InventarNr TODO other table too (?)
             if (!table.iterableKeyValuesTables.isEmpty()) {
@@ -157,12 +143,13 @@ public class EntryManager {
                 }
             }
             entries.fillSysDateValues(table.defaultSysdate, entries.rowSize() - 1);
-            // TODO Aufgabe -> kein eintrag vorhanden -> neue eintrag key started bei 2 anstatt 1
             // fill next iterable key-value of table
             for (int column = 0; column < columns.size(); column++) {
                 for (int keyIndex = 0; keyIndex < table.iterableKeyValues.size(); keyIndex++) {
                     if (columns.get(column).equals(keys.get(keyIndex))) {
                         entries.getLatestNodeEntry().get(column).setText(nextAvailableKeys.get(keyIndex));
+                        entries.getLatestNodeEntry().get(column).initialVal = nextAvailableKeys.get(keyIndex);
+                        entries.getLatestNodeEntry().get(column).setChanged(false);
                     }
                 }
             }

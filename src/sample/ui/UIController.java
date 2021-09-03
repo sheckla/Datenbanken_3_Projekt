@@ -4,7 +4,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableListBase;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -33,25 +32,21 @@ import java.util.*;
 // TODO nur bestimmte daten erlauben (int für nummern, zeichen für Strings etc)
 
 public class UIController {
+    private final boolean DEVELOPER_MODE = false; // shows all tables in database in top navigation
     private BorderPane border; // main UI element
     private Text dataTitle = new Text("");
-    private Label currentSelectedTable = new Label("");
     private Label updatedTime = new Label("");
     private Label currentStatement = new Label("");
-    private Label debug = new Label("");
     private TextField searchField = new TextField("");
 
 
-    // TODO textfield -> row anzeigen per col/row
-    private ListView<GridPane> dataMatrixListView = new ListView<>(); // TODO slider anpassen
+    private ListView<GridPane> dataMatrixListView = new ListView<>();
     private EntryManager entryManager;
     private TableClickHandler tableClickHandler = new TableClickHandler();
     private JDBCDatabase jdbc;
-    private TableView table;
-    private ArrayList<TableView> tableViews = new ArrayList<>();
+    private TableView currentTable;
     private HashMap<String, TableView> tableMap = TableCreator.createTables();
     private int currentSelectedRow = 0;
-    private boolean inputHappened = false;
 
     public UIController() {
         jdbc = new JDBCDatabase("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin:@oracle-srv.edvsz.hs-osnabrueck.de:1521/oraclestud",
@@ -62,7 +57,7 @@ public class UIController {
     public BorderPane createUI() {
         //Borderpane https://docs.oracle.com/javafx/2/layout/builtin_l
         // layouts.htm
-        table = tableMap.get("AUFGABE");
+        currentTable = tableMap.get("AUFGABE");
         border = new BorderPane();
         ScrollPane topScroll = new ScrollPane(createTopNavigation());
         topScroll.setFitToHeight(true);
@@ -98,23 +93,21 @@ public class UIController {
 
     // initializes all class variables and parsed table
     private void changeToTable(TableView table) {
-        this.table = table;
-        currentSelectedTable.setText(replaceUmlaute(table.toString() + " is selected"));
+        this.currentTable = table;
         entryManager.changeTable(table);
         entryManager.pullData();
         border.setCenter(createDatabaseView());
         border.setRight(createRightNavigation());
-        updatedTime.setText(entryManager.curTime());
+        updatedTime.setText("Daten aktualisiert: " + entryManager.curTime());
         searchField.setText("");
     }
 
     private void refreshDatabaseView() {
-        currentStatement.setText("");
         border.setCenter(createDatabaseView());
     }
 
     private VBox createDatabaseView() {
-        System.out.println("PRIMARY KEYS: " + jdbc.getKeys(table.toString()));
+        System.out.println("PRIMARY KEYS: " + jdbc.getKeys(currentTable.toString()));
 
         dataMatrixListView = new ListView(); // TODO slider anpassen, optimieren (wird zu oft ausgeführt)
         dataMatrixListView.setPrefHeight(2160);
@@ -123,11 +116,11 @@ public class UIController {
         vbox.setPadding(new Insets(10)); // Set all sides to 10
         vbox.setSpacing(8);              // Gap between nodes
 
-        dataTitle = new Text("Daten");
+        dataTitle = new Text(currentTable.toString());
         dataTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(dataTitle);
 
-        if (table != null) {
+        if (currentTable != null) {
             for (int i = 0; i < entryManager.size(); i++) {
                 dataMatrixListView.getItems().add(createDataRow(entryManager.getNodeEntry(i)));
             }
@@ -136,7 +129,8 @@ public class UIController {
         dataMatrixListView.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                nToMHandler(dataMatrixListView.getSelectionModel().getSelectedIndex());
+                int index = dataMatrixListView.getSelectionModel().getSelectedIndex();
+                if (index > 0) nToMHandler(index);
                 currentSelectedRow = dataMatrixListView.getSelectionModel().getSelectedIndex();
             }
         });
@@ -147,7 +141,6 @@ public class UIController {
     // TODO Varchar constraints für charlimit
     private GridPane createDataRow(ArrayList<DataTextFieldNode> entry) {
         GridPane root = new GridPane();
-        int i = 0;
         for (DataTextFieldNode tf : entry) {
             root.setRowIndex(tf, tf.getRow());           // Nur nutwendig für GridPane
             root.setColumnIndex(tf, tf.getCol());        // ^
@@ -159,7 +152,8 @@ public class UIController {
             item.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
-                    nToMHandler(((DataTextFieldNode) item).getRow());
+                    int index = (((DataTextFieldNode) item).getRow());
+                    if (index > 0) nToMHandler(index);
                     currentSelectedRow = ((DataTextFieldNode) item).getRow();
                 }
             });
@@ -168,111 +162,198 @@ public class UIController {
     }
 
     private VBox createTopNavigation() {
-        HBox hbox = new HBox();
-        hbox.setPadding(new Insets(15, 12, 15, 12));
-        hbox.setSpacing(10);   // Gap between nodes
-        hbox.setStyle("-fx-background-color: #FFFFFF;");
+        VBox vBox = new VBox();
+        vBox.setSpacing(-10);
+        if (!DEVELOPER_MODE) {
+            HBox hbox = new HBox();
+            hbox.setPadding(new Insets(10));
+            hbox.setSpacing(8);
+            hbox.setStyle("-fx-background-color: #FFFFFF;");
 
-        Button buttonAufgabe = new Button("Aufgaben");
-        buttonAufgabe.setPrefSize(100, 20);
-        buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                changeTableDialog(tableMap.get("AUFGABE"));
-            }
-        });
+            Button buttonAufgabe = new Button("Aufgaben");
+            buttonAufgabe.setPrefSize(100, 20);
+            buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("AUFGABE"));
+                }
+            });
 
-        Button buttonPersonal = new Button("Personal");
-        buttonPersonal.setPrefSize(100, 20);
-        buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                changeTableDialog(tableMap.get("PERSONAL"));
-            }
-        });
+            Button buttonPersonal = new Button("Personal");
+            buttonPersonal.setPrefSize(100, 20);
+            buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("PERSONAL"));
+                }
+            });
 
-        Button buttonMaschine = new Button("Maschinen");
-        buttonMaschine.setPrefSize(100, 20);
-        buttonMaschine.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                changeTableDialog(tableMap.get("MASCHINE"));
-            }
-        });
+            Button buttonGeschaeftspartner = new Button("Geschaeftspartner");
+            buttonGeschaeftspartner.setPrefSize(100, 20);
+            buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("GESCHAEFTSPARTNER"));
+                }
+            });
 
-        Button buttonGeschaeftspartner = new Button("Geschaeftspartner");
-        buttonGeschaeftspartner.setPrefSize(100, 20);
-        buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                changeTableDialog(tableMap.get(table.correspondingTables.get(0)));
-            }
-        });
+            Button buttonFeld = new Button("Feld");
+            buttonFeld.setPrefSize(100,20);
+            buttonFeld.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("FELD"));
+                }
+            });
 
-        // Inventar dropdown
-        String inventar[] = {"Inventargegenstand", "Vorräte", "Lagersilo", "Maschine"};
-        ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
-        inventarComboBox.valueProperty().addListener(new ChangeListener() {
-            @Override
-            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
-            }
-        });
-        TilePane tilePane = new TilePane(inventarComboBox);
-        inventarComboBox.getSelectionModel().selectFirst();
-        inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
+            Button buttonKostenstelle = new Button("Kostenstelle");
+            buttonKostenstelle.setPrefSize(100,20);
+            buttonKostenstelle.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("KOSTENSTELLE"));
+                }
+            });
+
+            Button buttonSex = new Button("Geschlecht");
+            buttonSex.setPrefSize(100,20);
+            buttonSex.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("SEX"));
+                }
+            });
+
+            Button buttonStandort = new Button("Standort");
+            buttonStandort.setPrefSize(100,20);
+            buttonStandort.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("STANDORT"));
+                }
+            });
+
+
+            // Inventar dropdown
+
+
+            String inventar[] = {"Vorräte", "Lagersilo", "Maschine"};
+            ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
+            inventarComboBox.valueProperty().addListener(new ChangeListener() {
+                @Override
+                public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                    changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+                }
+            });
+            TilePane tilePane = new TilePane(inventarComboBox);
+            inventarComboBox.getSelectionModel().selectFirst();
+            inventarComboBox.showingProperty().addListener((obs, wasShowing, isShowing) -> {
 //            if (!isShowing) {
 //                changeTable(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
 //            }
-        });
-        hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonMaschine, buttonGeschaeftspartner, currentSelectedTable);
-        VBox vBox = new VBox();
-        vBox.setSpacing(-10);
+            });
+            hbox.getChildren().addAll(inventarComboBox, buttonAufgabe, buttonPersonal, buttonGeschaeftspartner, buttonFeld,
+                    buttonKostenstelle, buttonSex, buttonStandort);
 
-        HBox hbox1 = new HBox();
-        hbox1.setPadding(new Insets(10)); // Set all sides to 10
-        hbox1.setSpacing(8);              // Gap between nodes
-        for (int i = 0; i < 11; i++) {
-            TableView table = new TableView(Table.values()[i].toString(), false);
-            this.table = table;
-            String first = table.toString().substring(0, 1).toUpperCase();
-            String after = table.toString().substring(1, table.toString().length()).toLowerCase();
-            String tableName = first + after;
+            // connected tables
+            HBox hboxConnected = new HBox();
+            hboxConnected.setPadding(new Insets(10));
+            hboxConnected.setSpacing(8);
+            hboxConnected.setStyle("-fx-background-color: #FFFFFF;");
 
-            Button currentButton = new Button(tableName);
-            currentButton.setPrefSize(150, 20);
-            currentButton.setOnAction(new EventHandler<ActionEvent>() {
+            Button buttonBeinhaltet = new Button("Beinhaltet");
+            buttonBeinhaltet.setPrefSize(100,20);
+            buttonBeinhaltet.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get(table.toString()));
+                    changeTableDialog(tableMap.get("BEINHALTET"));
                 }
             });
-            hbox1.getChildren().add(currentButton);
-        }
 
-        HBox hbox2 = new HBox();
-        hbox2.setPadding(new Insets(10));
-        hbox2.setSpacing(8);
-        for (int i = 11; i < 22; i++) {
-            TableView table = new TableView(Table.values()[i].toString(), false);
-            this.table = table;
-            String first = table.toString().substring(0, 1).toUpperCase();
-            String after = table.toString().substring(1, table.toString().length()).toLowerCase();
-            String tableName = first + after;
-
-            Button currentButton = new Button(tableName);
-            currentButton.setPrefSize(150, 20);
-            currentButton.setOnAction(new EventHandler<ActionEvent>() {
+            Button buttonDurchgefuehrt = new Button("Durchgeführt auf");
+            buttonDurchgefuehrt.setPrefSize(100,20);
+            buttonDurchgefuehrt.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get(table.toString()));
+                    changeTableDialog(tableMap.get("DURCHGEFUEHRT_AUF"));
                 }
             });
-            hbox2.getChildren().add(currentButton);
+
+            Button buttonGelagert = new Button("Gelagert in");
+            buttonGelagert.setPrefSize(100,20);
+            buttonGelagert.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("GELAGERT_IN"));
+                }
+            });
+
+            Button buttonPartner = new Button("Partner bearbeitet");
+            buttonPartner.setPrefSize(100,20);
+            buttonPartner.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("PARTNER_BEARBEITET"));
+                }
+            });
+
+            Button buttonPersonalBearbeitet = new Button("Personal bearbeitet");
+            buttonPersonalBearbeitet.setPrefSize(100,20);
+            buttonPersonalBearbeitet.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    changeTableDialog(tableMap.get("PERSONAL_BEARBEITET"));
+                }
+            });
+            hboxConnected.getChildren().addAll(buttonBeinhaltet, buttonDurchgefuehrt, buttonGelagert, buttonPartner, buttonPersonalBearbeitet);
+            vBox.getChildren().add(hbox);
+            vBox.getChildren().add(hboxConnected);
+        } else {
+
+            HBox hbox1 = new HBox();
+            hbox1.setPadding(new Insets(10)); // Set all sides to 10
+            hbox1.setSpacing(8);              // Gap between nodes
+            for (int i = 0; i < 11; i++) {
+                TableView table = new TableView(Table.values()[i].toString(), false);
+                this.currentTable = table;
+                String first = table.toString().substring(0, 1).toUpperCase();
+                String after = table.toString().substring(1, table.toString().length()).toLowerCase();
+                String tableName = first + after;
+
+                Button currentButton = new Button(tableName);
+                currentButton.setPrefSize(150, 20);
+                currentButton.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent event) {
+                        changeTableDialog(tableMap.get(table.toString()));
+                    }
+                });
+                hbox1.getChildren().add(currentButton);
+            }
+
+            HBox hbox2 = new HBox();
+            hbox2.setPadding(new Insets(10));
+            hbox2.setSpacing(8);
+            for (int i = 11; i < 22; i++) {
+                TableView table = new TableView(Table.values()[i].toString(), false);
+                this.currentTable = table;
+                String first = table.toString().substring(0, 1).toUpperCase();
+                String after = table.toString().substring(1, table.toString().length()).toLowerCase();
+                String tableName = first + after;
+
+                Button currentButton = new Button(tableName);
+                currentButton.setPrefSize(150, 20);
+                currentButton.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent event) {
+                        changeTableDialog(tableMap.get(table.toString()));
+                    }
+                });
+                hbox2.getChildren().add(currentButton);
+            }
+            vBox.getChildren().add(hbox1);
+            vBox.getChildren().add(hbox2);
         }
-        vBox.getChildren().add(hbox1);
-        vBox.getChildren().add(hbox2);
-        vBox.getChildren().add(hbox);
         return vBox;
     }
 
@@ -280,7 +361,7 @@ public class UIController {
         VBox vbox = new VBox();
         vbox.setPadding(new Insets(10)); // Set all sides to 10
         vbox.setSpacing(8);              // Gap between nodes
-        Text title = new Text("View");
+        Text title = new Text("Ansichten");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(title);
 
@@ -357,7 +438,7 @@ public class UIController {
     private VBox createRightNavigation() {
         VBox vbox = null;
         // Views
-        if (!table.editable() && !table.displayButtons.isEmpty()) {
+        if (!currentTable.editable() && !currentTable.displayButtons.isEmpty()) {
             vbox = new VBox();
             vbox.setPadding(new Insets(10)); // Set all sides to 10
             vbox.setSpacing(8);              // Gap between nodes
@@ -373,7 +454,7 @@ public class UIController {
             flow.setPrefWrapLength(170); // preferred width allows for two columns
             flow.setStyle("-fx-background-color: DAE6F3;");
 
-            for (String button : table.displayButtons) {
+            for (String button : currentTable.displayButtons) {
                 switch (button) {
                     case "PIECHART":
                         ImageView pie = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_1.png")));
@@ -407,28 +488,58 @@ public class UIController {
             flow.getChildren().add(data);
             vbox.getChildren().add(flow);
             // Tables
-        } else if (!table.mToNTables.isEmpty()) {
+        } else if (!currentTable.connectedTables.isEmpty() && !tableClickHandler.isSecondClick()) {
             vbox = new VBox();
             vbox.setPadding(new Insets(10)); // Set all sides to 10
             vbox.setSpacing(8);              // Gap between nodes
             // TODO Buttons groesse anpassen
-            Text title = new Text("ADD N:M");
+            Text title = new Text("Verknüpfte Tabellen");
             title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
             vbox.getChildren().add(title);
 
 
-            // N:M Table button
-            Button currentButton = new Button(table.mToNTables.get(0));
-            currentButton.setPrefSize(100, 20);
-            currentButton.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent event) {
-                    tableClickHandler.setButtonClicked(true);
-                    changeTableDialog(tableMap.get(table.correspondingTables.get(0)));
-                    dataTitle.setText("Zweiten Eintrag auswählen");
+            // Connected Tables
+            for (int i = 0; i < currentTable.connectedTables.size(); i++) {
+                final int index = i;
+                String buttonText = currentTable.connectedTables.get(i);
+                switch (currentTable.connectedTables.get(i)) { // cases to be extended for user-friendlieness
+                    case "ABWESENHEIT":
+                        buttonText = "Mitarbeiter auswählen";
+                        break;
+                    case "BEINHALTET":
+                        buttonText = "Beinhaltet Inventargegenstand";
+                        break;
+                    case "DURCHGEFUEHRT_AUF":
+                        buttonText = "Durchgeführt auf Feld";
+                        break;
+                    case "PARTNER_BEARBEITET":
+                        buttonText = "Partner bearbeitet";
+                        break;
+                    case "GELAGERT_IN":
+                        buttonText = "Gelagert in";
+                        break;
+                    case "PERSONAL":
+                        buttonText = "Geschlecht";
+                    default:
+                        buttonText = capitalize(buttonText);
+                        break;
                 }
-            });
-            vbox.getChildren().add(currentButton);
+                Button currentButton = new Button(buttonText);
+                currentButton.setPrefSize(150, 20);
+                currentButton.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent event) {
+                        if (currentSelectedRow > 0) { // exclude column-titles
+                            tableClickHandler.setButtonClicked(true);
+                            tableClickHandler.setInitialTable(currentTable.toString());
+                            tableClickHandler.setTableIndex(index);
+                            changeToTable(tableMap.get(currentTable.correspondingConnectedTables.get(index)));
+                            dataTitle.setText("Zweiten Eintrag auswählen");
+                        }
+                    }
+                });
+                vbox.getChildren().add(currentButton);
+            }
 
         }
         return vbox;
@@ -469,6 +580,7 @@ public class UIController {
             public void handle(ActionEvent event) {
                 // TODO onbuttonlistener - ENTER
                 entryManager.createNewEntry();
+                currentStatement.setText("YEPPERS");
                 refreshDatabaseView();
             }
         });
@@ -510,7 +622,6 @@ public class UIController {
         HBox tableLable = new HBox();
         tableLable.setPadding(new Insets(15, 12, 15, 12));
         tableLable.setSpacing(10);   // Gap between nodes
-        tableLable.getChildren().add(currentSelectedTable);
 
         // data pulled date
         tableLable.setPadding(new Insets(15, 12, 15, 12));
@@ -528,10 +639,10 @@ public class UIController {
         // both corresponding n:m tables clicked -> add to actual n:m table
         if (tableClickHandler.isSecondClick()) {
             tableClickHandler.setSecondClick(false);
-            tableClickHandler.setSecondEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
-            changeTableDialog(tableMap.get("GELAGERT_IN"));
+            tableClickHandler.setSecondEntry(entryManager.getEntry(row), jdbc.getColumnNames(currentTable.toString()));
+            changeToTable(tableMap.get(tableMap.get(tableClickHandler.getInitialTable()).connectedTables.get(tableClickHandler.getTableIndex())));
 
-            tableClickHandler.setnToMColumns(jdbc.getColumnNames(table.toString()));
+            tableClickHandler.setnToMColumns(jdbc.getColumnNames(currentTable.toString()));
             System.out.println("selected entries are:");
             System.out.println(tableClickHandler.getFirstRow());
             System.out.println(tableClickHandler.getSecondRow());
@@ -543,10 +654,10 @@ public class UIController {
             ArrayList<String> selectedUserValues = tableClickHandler.getFilledNtoMColumns();
             System.out.println(selectedUserValues);
             for (int i = 0; i < selectedUserValues.size(); i++) {
-                nodes.get(i).setText(selectedUserValues.get(i));
+                if (!selectedUserValues.get(i).equals("")) nodes.get(i).setText(selectedUserValues.get(i));
             }
         } else {
-            tableClickHandler.setFirstEntry(entryManager.getEntry(row), jdbc.getColumnNames(table.toString()));
+            tableClickHandler.setFirstEntry(entryManager.getEntry(row), jdbc.getColumnNames(currentTable.toString()));
         }
     }
 
@@ -563,74 +674,101 @@ public class UIController {
     private void showPieChart() {
         VBox vbox = new VBox();
         ObservableList<PieChart.Data> pieChartData = FXCollections.observableArrayList();
-//                FXCollections.observableArrayList(
-//                        new PieChart.Data("Grapefruit", 13),
-//                        new PieChart.Data("Oranges", 25),
-//                        new PieChart.Data("Plums", 10),
-//                        new PieChart.Data("Pears", 22),
-//                        new PieChart.Data("Apples", 30));
-        ObservableList<PieChart.Data> test = new ObservableListBase<PieChart.Data>() {
-            @Override
-            public PieChart.Data get(int index) {
-                return null;
-            }
 
-            @Override
-            public int size() {
-                return 0;
+        ArrayList<ArrayList<String>> matrix = entryManager.getEntries().getStringMatrix();
+        ArrayList<String> chartNames = new ArrayList<>();
+        ArrayList<Integer> chartValues = new ArrayList<>();
+        for (int row = 1; row < matrix.size(); row++) {
+            for (int col = 0; col < matrix.get(0).size(); col++) {
+                switch (currentTable.toString()) {
+                    case "MITARBEITERAUFTEILUNG":
+                        if (matrix.get(0).get(col).equals("MITARBEITERNR")) {
+                            chartNames.add(matrix.get(row).get(col));
+                        } else {
+                            int sum = 0;
+                            for (int i = 4; i < matrix.get(0).size(); i++) {
+                                sum++;
+                                sum += Integer.parseInt(matrix.get(row).get(i));
+                            }
+                            System.out.println(sum);
+                            chartValues.add(sum);
+                            break;
+                        }
+                        break;
+                    case "LAGERSILOLISTE":
+                        break;
+                    default:
+                        if (matrix.get(0).get(col).equals(currentTable.graphicDisplayStrings.get(2))) {
+                            chartValues.add(Integer.parseInt(matrix.get(row).get(col)));
+                        } else if (matrix.get(0).get(col).equals(currentTable.graphicDisplayStrings.get(1))) {
+                            chartNames.add(matrix.get(row).get(col));
+                        }
+                        break;
+                }
             }
-        };
+        }
 
-        for (int i = 1; i < entryManager.size(); i++) {
-            PieChart.Data data = new PieChart.Data(entryManager.getEntry(i).get(0), 22);
+
+        for (int i = 0; i < chartNames.size(); i++) {
+            PieChart.Data data = new PieChart.Data(chartNames.get(i), chartValues.get(i));
             pieChartData.add(data);
         }
         final PieChart chart = new PieChart(pieChartData);
-        chart.setTitle(table.toString());
+        chart.setTitle(currentTable.graphicDisplayStrings.get(3));
         vbox.getChildren().add(chart);
         border.setCenter(vbox);
     }
 
     private void showBarChart() {
         final String austria = "Austria";
-        final String brazil = "Brazil";
-        final String france = "France";
-        final String italy = "Italy";
-        final String usa = "USA";
         final CategoryAxis xAxis = new CategoryAxis();
         final NumberAxis yAxis = new NumberAxis();
-        final BarChart<String, Number> bc =
-                new BarChart<String, Number>(xAxis, yAxis);
-        bc.setTitle("Country Summary");
-        xAxis.setLabel("Country");
-        yAxis.setLabel("Value");
+        StackedBarChart barchart =
+                new StackedBarChart(xAxis, yAxis);
+        barchart.setTitle(currentTable.graphicDisplayStrings.get(0));
+        xAxis.setLabel(currentTable.graphicDisplayStrings.get(1));
+        yAxis.setLabel(currentTable.graphicDisplayStrings.get(2));
 
-        XYChart.Series series1 = new XYChart.Series();
-        series1.setName("2003");
-        series1.getData().add(new XYChart.Data(austria, 25601.34));
-        series1.getData().add(new XYChart.Data(brazil, 20148.82));
-        series1.getData().add(new XYChart.Data(france, 10000));
-        series1.getData().add(new XYChart.Data(italy, 35407.15));
-        series1.getData().add(new XYChart.Data(usa, 12000));
+        ArrayList<ArrayList<String>> matrix = entryManager.getEntries().getStringMatrix();
+        ArrayList<String> chartNames = new ArrayList<>();
+        ArrayList<Integer> chartValues = new ArrayList<>();
+        for (int row = 1; row < matrix.size(); row++) {
+            for (int col = 0; col < matrix.get(0).size(); col++) {
+                switch (currentTable.toString()) {
+                    case "MITARBEITERAUFTEILUNG":
+                        if (matrix.get(0).get(col).equals("MITARBEITERNR")) {
+                            chartNames.add(matrix.get(row).get(col));
+                        } else {
+                            int sum = 0;
+                            for (int i = 4; i < matrix.get(0).size(); i++) {
+                                sum++;
+                                sum += Integer.parseInt(matrix.get(row).get(i));
+                            }
+                            System.out.println(sum);
+                            chartValues.add(sum);
+                            break;
+                        }
+                        break;
+                    case "LAGERSILOLISTE":
+                        break;
+                    default:
+                        if (matrix.get(0).get(col).equals(currentTable.graphicDisplayStrings.get(2))) {
+                            chartValues.add(Integer.parseInt(matrix.get(row).get(col)));
+                        } else if (matrix.get(0).get(col).equals(currentTable.graphicDisplayStrings.get(1))) {
+                            chartNames.add(matrix.get(row).get(col));
+                        }
+                        break;
+                }
+            }
+        }
 
-        XYChart.Series series2 = new XYChart.Series();
-        series2.setName("2004");
-        series2.getData().add(new XYChart.Data(austria, 57401.85));
-        series2.getData().add(new XYChart.Data(brazil, 41941.19));
-        series2.getData().add(new XYChart.Data(france, 45263.37));
-        series2.getData().add(new XYChart.Data(italy, 117320.16));
-        series2.getData().add(new XYChart.Data(usa, 14845.27));
-
-        XYChart.Series series3 = new XYChart.Series();
-        series3.setName("2005");
-        series3.getData().add(new XYChart.Data(austria, 45000.65));
-        series3.getData().add(new XYChart.Data(brazil, 44835.76));
-        series3.getData().add(new XYChart.Data(france, 18722.18));
-        series3.getData().add(new XYChart.Data(italy, 17557.31));
-        series3.getData().add(new XYChart.Data(usa, 92633.68));
-
-        bc.getData().addAll(series1, series2, series3);
-        border.setCenter(bc);
+        for (int i = 0; i < chartNames.size(); i++) {
+            XYChart.Series series = new XYChart.Series<>();
+            series.setName(chartNames.get(i));
+            series.getData().add(new XYChart.Data(chartNames.get(i), chartValues.get(i)));
+            barchart.getData().add(series);
+        }
+        border.setCenter(barchart);
     }
 
     private String capitalize(String s) {

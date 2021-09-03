@@ -12,9 +12,9 @@ public class TableView {
     public ArrayList<String> decimalValues = new ArrayList<>(); //punkt durch komma ersetzen
     public ArrayList<String> displayButtons = new ArrayList<>(); // format buttons -> createRightNavigation()
     public ArrayList<String> defaultSysdate = new ArrayList<>(); //in diesen spalten wird standardmäßig schon das sysdate eingetragen
-    public ArrayList<String> mToNTables = new ArrayList<>(); // zwischentabellen
-    public ArrayList<String> correspondingTables = new ArrayList<>(); // andere Tabelle der Zwischentabelle
-
+    public ArrayList<String> connectedTables = new ArrayList<>(); // zwischentabellen
+    public ArrayList<String> correspondingConnectedTables = new ArrayList<>(); // andere Tabelle der Zwischentabelle
+    public ArrayList<String> graphicDisplayStrings = new ArrayList<>(); // 0 = Title, 1 = xAxis, 2 = yAxis, 3 = description
     public TableView(String table, boolean b) {
         this.table = table;
         editable = b;

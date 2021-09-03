@@ -26,6 +26,7 @@ public class TableCreator {
                     table.iterableKeyValues.add("SN");
                     table.iterableKeyValues.add("INVENTARNR");
                     table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
+                    table.connectedTables.add("GELAGERT_IN");
                     break;
                 case "LAGERSILO":
                     table.preFillTables.add("STANDORT");
@@ -41,25 +42,36 @@ public class TableCreator {
                     table.preFillTables.add("INVENTARGEGENSTAND");
                     table.iterableKeyValues.add("INVENTARNR");
                     table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
-                    table.mToNTables.add("GELAGERT_IN");
-                    table.correspondingTables.add("STANDORT");
+                    table.connectedTables.add("GELAGERT_IN");
+                    table.correspondingConnectedTables.add("STANDORT");
                     break;
                 case "GESCHAEFTSPARTNER":
                     table.preFillTables.add("STANDORT");
+                    table.connectedTables.add("PARTNER_BEARBEITET");
+                    table.correspondingConnectedTables.add("AUFGABE");
                     break;
                 case "PERSONAL":
                     table.preFillTables.add("STANDORT");
                     table.defaultSysdate.add("EINSTELLUNGSDATUM");
                     table.iterableKeyValues.add("MITARBEITERNR");
                     table.decimalValues.add("GEHALT");
+                    table.connectedTables.add("PERSONAL");
+                    table.correspondingConnectedTables.add("SEX");
                     break;
                 case "ABWESENHEIT":
                     table.defaultSysdate.add("ANFANG");
+                    table.connectedTables.add("ABWESENHEIT");
+                    table.correspondingConnectedTables.add("PERSONAL");
                     break;
                 case "SEX":
                     table.iterableKeyValues.add("SEXNR");
                     break;
-                case "AUFGABE": //todo Fertiggestellt bei Aufgabe ist ein boolean der in der Anwendung direkt als Fertiggestellt(1) oder inBearbeitung(0) dargestellt werden könnte. Beim erstellen vlt. auch einfach als checkbox anwählbar.
+                case "FELD":
+                    table.iterableKeyValues.add("FELDNR");
+                    table.connectedTables.add("DURCHGEFUEHRT_AUF");
+                    table.correspondingConnectedTables.add("AUFGABE");
+                    break;
+                case "AUFGABE":
                     table.preFillTables.add("KOSTENSTELLE");
                     table.preFillTables.add("FELDAUFGABE");
                     table.preFillTables.add("WARTUNG");
@@ -68,8 +80,13 @@ public class TableCreator {
                     table.defaultSysdate.add("ERSTELLDATUM");
                     table.decimalValues.add("BETRAG");
                     table.iterableKeyValues.add("AUFGABENNR");
-                    table.mToNTables.add("BEINHALTET");
-                    table.correspondingTables.add("INVENTARLISTE");
+                    table.connectedTables.add("BEINHALTET");
+                    table.connectedTables.add("DURCHGEFUEHRT_AUF");
+                    table.connectedTables.add("PARTNER_BEARBEITET");
+                    table.correspondingConnectedTables.add("INVENTARLISTE");
+                    table.correspondingConnectedTables.add("FELD");
+                    table.correspondingConnectedTables.add("GESCHAEFTSPARTNER");
+
                     break;
                 case "KOSTENSTELLE":
                     table.iterableKeyValues.add("Kostenstelle");
@@ -104,11 +121,9 @@ public class TableCreator {
                     table.decimalValues.add("MENGE");
                     break;
                 case "STANDORT":
-                    table.mToNTables.add("GELAGERT_IN");
-                    table.correspondingTables.add("VORRAETE");
+                    table.connectedTables.add("GELAGERT_IN");
+                    table.correspondingConnectedTables.add("VORRAETE");
                     break;
-
-
             }
 
 
@@ -123,8 +138,35 @@ public class TableCreator {
                     table.displayButtons.add("BARCHART");
                     break;
                 case "INVENTARLISTE":
-                    table.mToNTables.add("BEINHALTET");
-                    table.correspondingTables.add("AUFGABE");
+                    table.connectedTables.add("BEINHALTET");
+                    table.correspondingConnectedTables.add("AUFGABE");
+                    break;
+                case"LAGERSILOLISTE":
+                    //table.displayButtons.add("BARCHART");
+                    break;
+                case "FELDERLISTE":
+                    table.displayButtons.add("BARCHART");
+                    table.displayButtons.add("PIECHART");
+                    table.graphicDisplayStrings.add("Felder Flächen");
+                    table.graphicDisplayStrings.add("FELDNR");
+                    table.graphicDisplayStrings.add("FLAECHE");
+                    table.graphicDisplayStrings.add("Felder");
+                    break;
+                case "TAETIGKEITENUEBERSICHT":
+                    table.displayButtons.add("BARCHART");
+                    table.displayButtons.add("PIECHART");
+                    table.graphicDisplayStrings.add("Tätigkeiten Anzahl");
+                    table.graphicDisplayStrings.add("TAETIGKEIT");
+                    table.graphicDisplayStrings.add("ANZAHL");
+                    table.graphicDisplayStrings.add("Taetigkeit");
+                    break;
+                case "MITARBEITERAUFTEILUNG":
+                    table.displayButtons.add("BARCHART");
+                    table.displayButtons.add("PIECHART");
+                    table.graphicDisplayStrings.add("Mitarbeiter Aufgabenverteilung");
+                    table.graphicDisplayStrings.add("MITARBEITERNR");
+                    table.graphicDisplayStrings.add("");
+                    table.graphicDisplayStrings.add("");
                     break;
             }
         }

@@ -145,7 +145,7 @@ public class JDBCDatabase {
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
-        return "";
+        return "Eintrag wurde aktualisiert!";
     }
 
     public String delete(String table, String val) {
@@ -159,7 +159,7 @@ public class JDBCDatabase {
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
-        return "";
+        return "Eintrag wurde gelöscht!";
     }
 
     // table immer mit .toString als Parameter!
@@ -171,7 +171,7 @@ public class JDBCDatabase {
         } catch (Exception e) {
             return exceptionMessageHandle(e);
         }
-        return "";
+        return "Eintrag wurde eingefügt!";
     }
 
     private void insertAutoFillValues(String table, ArrayList<String> vals, ArrayList<String> autoFill) {
@@ -226,6 +226,10 @@ public class JDBCDatabase {
                 s += "TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
             } else if (!vals.get(i).equals("")) {
                 s += "'" + vals.get(i) + "'";
+            } else if(vals.get(i).toLowerCase().equals("nein")) {
+                s += "'0'";
+            } else if (vals.get(i).toLowerCase().equals("ja")) {
+                s += "'1'";
             } else {
                 s += "NULL";
             }
@@ -237,12 +241,17 @@ public class JDBCDatabase {
     public String setStatement(ArrayList<String> columns, ArrayList<String> vals) {
         String s = "";
         for (int i = 0; i < vals.size(); i++) {
+            s += columns.get(i) + " = ";
             if (isDate(vals.get(i))) {
-                s += columns.get(i) + " = TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
+                s += "TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
+            } else if(vals.get(i).equals("nein")) {
+                s += "'0'";
+            } else if (vals.get(i).equals("ja")) {
+                s += "'1'";
             } else if (!vals.get(i).equals("")) {
-                s += columns.get(i) + " = '" + vals.get(i) + "'";
+                s += "'" + vals.get(i) + "'";
             } else {
-                s += columns.get(i) + " = NULL";
+                s += "NULL";
             }
             if (i != vals.size() - 1) s += ", ";
         }

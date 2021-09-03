@@ -39,7 +39,14 @@ public class DataMatrix {
                 }
             }
         }
-        
+
+        // update col/row for each DataTextFieldNode
+        for (int row = 1; row < containing.size(); row++) {
+            for (int col = 0; col < containing.get(0).size(); col++) {
+                containing.get(row).get(col).setCol(col);
+                containing.get(row).get(col).setRow(row);
+            }
+        }
         matrix = containing;
     }
 
@@ -64,6 +71,15 @@ public class DataMatrix {
         int col = 0;
         for (String s : arr) {
             DataTextFieldNode tf = new DataTextFieldNode(col++, row);
+            for (int i = 0; i < matrix.get(0).size(); i++) {
+                if (matrix.get(0).get(i).getText().equals("FERTIGGESTELLT")) {
+                    if (s.equals("0")) {
+                        s = "nein";
+                    } else if (s.equals("1")) {
+                        s = "ja";
+                    }
+                }
+            }
             tf.setText(s);
             tf.initialVal = s;
             tf.setEditable(editable);
@@ -153,6 +169,8 @@ public class DataMatrix {
                         String s = matrix.get(row).get(col).getText();
                         s = s.replace(".", ",");
                         matrix.get(row).get(col).setText(s);
+                        matrix.get(row).get(col).initialVal = s;
+                        matrix.get(row).get(col).setChanged(false);
                     }
                 }
             }
@@ -165,6 +183,8 @@ public class DataMatrix {
             for (int j = 0; j < sysDateValues.size(); j++) {
                 if (columns.get(col).equals(sysDateValues.get(j))) {
                     matrix.get(row).get(col).setText(curDateTime());
+                    matrix.get(row).get(col).initialVal = curDateTime();
+                    matrix.get(row).get(col).setChanged(false);
                 }
             }
         }
