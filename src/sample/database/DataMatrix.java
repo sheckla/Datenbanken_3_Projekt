@@ -33,7 +33,7 @@ public class DataMatrix {
         containing.add(matrix.get(0)); // add columns names as first row
         for (int row = 1; row < matrix.size(); row++) {
             for (int col = 0; col < matrix.get(0).size(); col++) {
-                if (matrix.get(row).get(col).getText().contains(keyword)) {
+                if (matrix.get(row).get(col).getText().toLowerCase().contains(keyword.toLowerCase())) {
                     containing.add(matrix.get(row));
                     break;
                 }
