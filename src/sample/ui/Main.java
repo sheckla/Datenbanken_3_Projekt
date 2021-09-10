@@ -22,7 +22,7 @@ public class Main extends Application {
         uiController = new UIController();
 
         Scene scene = new Scene(uiController.createUI());
-        primaryStage.setTitle("Hello World");
+        primaryStage.setTitle("Korn Manager");
         primaryStage.setScene(scene);
         primaryStage.setWidth(APP_WIDTH);
         primaryStage.setHeight(APP_HEIGHT);

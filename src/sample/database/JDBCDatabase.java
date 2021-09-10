@@ -128,7 +128,7 @@ public class JDBCDatabase {
     }
 
     public String getInsertStatement(String table, ArrayList<String> vals) {
-        return "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
+        return "INSERT INTO " + table + " " + columnStatement(table) + " VAlUES " +
                 valueStatement(vals);
     }
 
@@ -136,8 +136,8 @@ public class JDBCDatabase {
         try {
             insertAutoFillValues(table, newVals, autoFill);
             Statement st = connection.createStatement();
-            String primaryKey = getColumnNames(table.toString()).get(0);
-            String sql = "UPDATE " + table.toString() + " SET " + setStatement(getColumnNames(table.toString()), newVals) + " WHERE " +
+            String primaryKey = getColumnNames(table).get(0);
+            String sql = "UPDATE " + table + " SET " + setStatement(getColumnNames(table), newVals) + " WHERE " +
                     whereStatement(table, oldVals);
             System.out.println(sql);
             st.executeQuery(sql);
@@ -152,7 +152,7 @@ public class JDBCDatabase {
         try {
             Statement st = connection.createStatement();
             String primaryKey = getColumnNames(table).get(0);
-            String sql = "DELETE FROM " + table.toString() + " WHERE " + primaryKey + " = '" + val + "'";
+            String sql = "DELETE FROM " + table + " WHERE " + primaryKey + " = '" + val + "'";
             System.out.println(sql);
             st.executeQuery(sql);
             st.close();
@@ -178,7 +178,7 @@ public class JDBCDatabase {
         if (!autoFill.isEmpty()) {
             for (int i = 0; i < autoFill.size(); i++) {
                 ArrayList<String> toFilledColumnNames = getColumnNames(autoFill.get(i));
-                ArrayList<String> currentColumnNames = getColumnNames(table.toString());
+                ArrayList<String> currentColumnNames = getColumnNames(table);
 
                 ArrayList<String> toFilledColumnValues = new ArrayList<>();
                 for (int n = 0; n < currentColumnNames.size(); n++) {
@@ -198,7 +198,7 @@ public class JDBCDatabase {
     private String insertToDatabase(String table, ArrayList<String> vals) {
         try {
             Statement st = connection.createStatement();
-            String sql = "INSERT INTO " + table.toString() + " " + columnStatement(table) + " VAlUES " +
+            String sql = "INSERT INTO " + table + " " + columnStatement(table) + " VAlUES " +
                     valueStatement(vals);
             System.out.println(sql);
             st.executeQuery(sql);
@@ -226,9 +226,9 @@ public class JDBCDatabase {
                 s += "TO_DATE('" + vals.get(i).substring(0,vals.get(i).length()-2) + "', 'YYYY-MM-DD HH24:MI:SS')";
             } else if (!vals.get(i).equals("")) {
                 s += "'" + vals.get(i) + "'";
-            } else if(vals.get(i).toLowerCase().equals("nein")) {
+            } else if(vals.get(i).equalsIgnoreCase("nein")) {
                 s += "'0'";
-            } else if (vals.get(i).toLowerCase().equals("ja")) {
+            } else if (vals.get(i).equalsIgnoreCase("ja")) {
                 s += "'1'";
             } else {
                 s += "NULL";
@@ -285,7 +285,7 @@ public class JDBCDatabase {
         try {
             Statement st = connection.createStatement();
             DatabaseMetaData dm = connection.getMetaData();
-            ResultSet rs = dm.getPrimaryKeys(null, null, table.toString().toUpperCase());
+            ResultSet rs = dm.getPrimaryKeys(null, null, table.toUpperCase());
             int i = 0;
             while (rs.next()) {
                 keys.add(rs.getString("COLUMN_NAME"));
@@ -302,7 +302,7 @@ public class JDBCDatabase {
         ArrayList<Boolean> nullables = new ArrayList<>();
         try {
             Statement st = connection.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM " + table.toString());
+            ResultSet rs = st.executeQuery("SELECT * FROM " + table);
             ResultSetMetaData rsmd = rs.getMetaData();
             for (int i = 1; i <= getColumnSize(table); i++) {
                 if (rsmd.isNullable(i) == 1) {
@@ -323,7 +323,7 @@ public class JDBCDatabase {
         // format YYYY-MM-DD HH24:MI:SS
         // TODO to be extended for accuracy
         if (s.length() > 7) {
-            if (s.charAt(4) == '-' && s.charAt(7) == '-') return true;
+            return s.charAt(4) == '-' && s.charAt(7) == '-';
         }
         return false;
     }

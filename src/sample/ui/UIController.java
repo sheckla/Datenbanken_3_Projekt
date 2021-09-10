@@ -20,7 +20,7 @@ import sample.database.DataTextFieldNode;
 import sample.database.JDBCDatabase;
 import sample.database.Table;
 import sample.database.TableView;
-import sample.layoutTest.LayoutSample_TEST;
+import sample.layoutsample.LayoutSample;
 import sample.util.EntryManager;
 import sample.util.TableClickHandler;
 import sample.util.TableCreator;
@@ -35,17 +35,17 @@ public class UIController {
     private final boolean DEVELOPER_MODE = false; // shows all tables in database in top navigation
     private BorderPane border; // main UI element
     private Text dataTitle = new Text("");
-    private Label updatedTime = new Label("");
-    private Label currentStatement = new Label("");
+    private final Label updatedTime = new Label("");
+    private final Label currentStatement = new Label("");
     private TextField searchField = new TextField("");
 
 
     private ListView<GridPane> dataMatrixListView = new ListView<>();
-    private EntryManager entryManager;
-    private TableClickHandler tableClickHandler = new TableClickHandler();
-    private JDBCDatabase jdbc;
+    private final EntryManager entryManager;
+    private final TableClickHandler tableClickHandler = new TableClickHandler();
+    private final JDBCDatabase jdbc;
     private TableView currentTable;
-    private HashMap<String, TableView> tableMap = TableCreator.createTables();
+    private final HashMap<String, TableView> tableMap = TableCreator.createTables();
     private int currentSelectedRow = 0;
 
     public UIController() {
@@ -57,7 +57,6 @@ public class UIController {
     public BorderPane createUI() {
         //Borderpane https://docs.oracle.com/javafx/2/layout/builtin_l
         // layouts.htm
-        currentTable = tableMap.get("AUFGABE");
         border = new BorderPane();
         ScrollPane topScroll = new ScrollPane(createTopNavigation());
         topScroll.setFitToHeight(true);
@@ -93,7 +92,9 @@ public class UIController {
 
     // initializes all class variables and parsed table
     private void changeToTable(TableView table) {
+
         this.currentTable = table;
+        System.out.println(table.toString());
         entryManager.changeTable(table);
         entryManager.pullData();
         border.setCenter(createDatabaseView());
@@ -142,8 +143,8 @@ public class UIController {
     private GridPane createDataRow(ArrayList<DataTextFieldNode> entry) {
         GridPane root = new GridPane();
         for (DataTextFieldNode tf : entry) {
-            root.setRowIndex(tf, tf.getRow());           // Nur nutwendig für GridPane
-            root.setColumnIndex(tf, tf.getCol());        // ^
+            GridPane.setRowIndex(tf, tf.getRow());           // Nur nutwendig für GridPane
+            GridPane.setColumnIndex(tf, tf.getCol());        // ^
             root.getChildren().add(tf);
         }
 
@@ -175,7 +176,7 @@ public class UIController {
             buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("AUFGABE"));
+                    changeTableDialog(tableMap.get(Table.AUFGABE.toString()));
                 }
             });
 
@@ -184,7 +185,7 @@ public class UIController {
             buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("PERSONAL"));
+                    changeTableDialog(tableMap.get(Table.PERSONAL.toString()));
                 }
             });
 
@@ -193,43 +194,43 @@ public class UIController {
             buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("GESCHAEFTSPARTNER"));
+                    changeTableDialog(tableMap.get(Table.GESCHAEFTSPARTNER.toString()));
                 }
             });
 
             Button buttonFeld = new Button("Feld");
-            buttonFeld.setPrefSize(100,20);
+            buttonFeld.setPrefSize(100, 20);
             buttonFeld.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("FELD"));
+                    changeTableDialog(tableMap.get(Table.FELD.toString()));
                 }
             });
 
             Button buttonKostenstelle = new Button("Kostenstelle");
-            buttonKostenstelle.setPrefSize(100,20);
+            buttonKostenstelle.setPrefSize(100, 20);
             buttonKostenstelle.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("KOSTENSTELLE"));
+                    changeTableDialog(tableMap.get(Table.KOSTENSTELLE.toString()));
                 }
             });
 
             Button buttonSex = new Button("Geschlecht");
-            buttonSex.setPrefSize(100,20);
+            buttonSex.setPrefSize(100, 20);
             buttonSex.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("SEX"));
+                    changeTableDialog(tableMap.get(Table.SEX.toString()));
                 }
             });
 
             Button buttonStandort = new Button("Standort");
-            buttonStandort.setPrefSize(100,20);
+            buttonStandort.setPrefSize(100, 20);
             buttonStandort.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("STANDORT"));
+                    changeTableDialog(tableMap.get(Table.STANDORT.toString()));
                 }
             });
 
@@ -237,7 +238,7 @@ public class UIController {
             // Inventar dropdown
 
 
-            String inventar[] = {"Vorräte", "Lagersilo", "Maschine"};
+            String[] inventar = {"Vorräte", "Lagersilo", "Maschine"};
             ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
             inventarComboBox.valueProperty().addListener(new ChangeListener() {
                 @Override
@@ -262,47 +263,47 @@ public class UIController {
             hboxConnected.setStyle("-fx-background-color: #FFFFFF;");
 
             Button buttonBeinhaltet = new Button("Beinhaltet");
-            buttonBeinhaltet.setPrefSize(100,20);
+            buttonBeinhaltet.setPrefSize(100, 20);
             buttonBeinhaltet.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("BEINHALTET"));
+                    changeTableDialog(tableMap.get(Table.BEINHALTET.toString()));
                 }
             });
 
             Button buttonDurchgefuehrt = new Button("Durchgeführt auf");
-            buttonDurchgefuehrt.setPrefSize(100,20);
+            buttonDurchgefuehrt.setPrefSize(100, 20);
             buttonDurchgefuehrt.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("DURCHGEFUEHRT_AUF"));
+                    changeTableDialog(tableMap.get(Table.DURCHGEFUEHRT_AUF.toString()));
                 }
             });
 
             Button buttonGelagert = new Button("Gelagert in");
-            buttonGelagert.setPrefSize(100,20);
+            buttonGelagert.setPrefSize(100, 20);
             buttonGelagert.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("GELAGERT_IN"));
+                    changeTableDialog(tableMap.get(Table.GELAGERT_IN.toString()));
                 }
             });
 
             Button buttonPartner = new Button("Partner bearbeitet");
-            buttonPartner.setPrefSize(100,20);
+            buttonPartner.setPrefSize(100, 20);
             buttonPartner.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("PARTNER_BEARBEITET"));
+                    changeTableDialog(tableMap.get(Table.PARTNER_BEARBEITET.toString()));
                 }
             });
 
             Button buttonPersonalBearbeitet = new Button("Personal bearbeitet");
-            buttonPersonalBearbeitet.setPrefSize(100,20);
+            buttonPersonalBearbeitet.setPrefSize(100, 20);
             buttonPersonalBearbeitet.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    changeTableDialog(tableMap.get("PERSONAL_BEARBEITET"));
+                    changeTableDialog(tableMap.get(Table.PERSONAL_BEARBEITET.toString()));
                 }
             });
             hboxConnected.getChildren().addAll(buttonBeinhaltet, buttonDurchgefuehrt, buttonGelagert, buttonPartner, buttonPersonalBearbeitet);
@@ -317,7 +318,7 @@ public class UIController {
                 TableView table = new TableView(Table.values()[i].toString(), false);
                 this.currentTable = table;
                 String first = table.toString().substring(0, 1).toUpperCase();
-                String after = table.toString().substring(1, table.toString().length()).toLowerCase();
+                String after = table.toString().substring(1).toLowerCase();
                 String tableName = first + after;
 
                 Button currentButton = new Button(tableName);
@@ -338,7 +339,7 @@ public class UIController {
                 TableView table = new TableView(Table.values()[i].toString(), false);
                 this.currentTable = table;
                 String first = table.toString().substring(0, 1).toUpperCase();
-                String after = table.toString().substring(1, table.toString().length()).toLowerCase();
+                String after = table.toString().substring(1).toLowerCase();
                 String tableName = first + after;
 
                 Button currentButton = new Button(tableName);
@@ -365,10 +366,8 @@ public class UIController {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         vbox.getChildren().add(title);
 
-        for (int i = 22; i < 22 + 18; i++) {
+        for (int i = 22; i < Table.values().length; i++) {
             TableView table = new TableView(Table.values()[i].toString(), false);
-            String first = table.toString().substring(0, 1).toUpperCase();
-            String after = table.toString().substring(1, table.toString().length()).toLowerCase();
             String tableName = capitalize(table.toString());
 
             Button currentButton = new Button(tableName);
@@ -394,10 +393,10 @@ public class UIController {
                     prompt = "Personal";
                     break;
                 case "Aufgabenbereiche":
-                    dropDownValues = new String[]{"AUFGABENUEBERSICHT","AUFGABENBEREICHE", "AUFGABENLISTE", "AUFGABENVERTEILUNG", "TAETIGKEITENUEBERSICHT"};
+                    dropDownValues = new String[]{"AUFGABENUEBERSICHT", "AUFGABENLISTE", "Aufgabenverteilung", "TAETIGKEITENUEBERSICHT"};
                     prompt = "Aufgabenbereiche";
                     break;
-                case "Finanzübersicht":
+                case "Finanzuebersicht":
                     dropDownValues = new String[]{"FINANZUEBERSICHT", "KOSTENSTELLENLISTE", "GESCHAEFTSPARTNERLISTE"};
                     prompt = "Finanzen";
                     break;
@@ -426,7 +425,11 @@ public class UIController {
         inventarComboBox.valueProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+                if (inventarComboBox.getValue().toString().equals("Aufgabenverteilung")) {
+                    changeTableDialog(tableMap.get(inventarComboBox.getValue().toString()));
+                } else {
+                    changeTableDialog(tableMap.get((replaceUmlaute(inventarComboBox.getValue().toString()))));
+                }
             }
         });
 
@@ -457,7 +460,7 @@ public class UIController {
             for (String button : currentTable.displayButtons) {
                 switch (button) {
                     case "PIECHART":
-                        ImageView pie = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_1.png")));
+                        ImageView pie = new ImageView(new Image(UIController.class.getResourceAsStream("../graphics/chart_1.png")));
                         pie.setOnMouseClicked(new EventHandler<MouseEvent>() {
                             @Override
                             public void handle(MouseEvent event) {
@@ -467,7 +470,7 @@ public class UIController {
                         flow.getChildren().add(pie);
                         break;
                     case "BARCHART":
-                        ImageView bar = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_3.png")));
+                        ImageView bar = new ImageView(new Image(UIController.class.getResourceAsStream("../graphics/chart_3.png")));
                         bar.setOnMouseClicked(new EventHandler<MouseEvent>() {
                             @Override
                             public void handle(MouseEvent event) {
@@ -478,7 +481,7 @@ public class UIController {
                         break;
                 }
             }
-            ImageView data = new ImageView(new Image(LayoutSample_TEST.class.getResourceAsStream("../graphics/chart_4.png")));
+            ImageView data = new ImageView(new Image(UIController.class.getResourceAsStream("../graphics/chart_4.png")));
             data.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
@@ -585,7 +588,7 @@ public class UIController {
             }
         });
 
-        Button buttonCommit = new Button("Commit!");
+        Button buttonCommit = new Button("Werte Bestätigen");
         buttonCommit.setPrefSize(100, 20);
         buttonCommit.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -687,7 +690,6 @@ public class UIController {
                         } else {
                             int sum = 0;
                             for (int i = 4; i < matrix.get(0).size(); i++) {
-                                sum++;
                                 sum += Integer.parseInt(matrix.get(row).get(i));
                             }
                             System.out.println(sum);
@@ -741,7 +743,6 @@ public class UIController {
                         } else {
                             int sum = 0;
                             for (int i = 4; i < matrix.get(0).size(); i++) {
-                                sum++;
                                 sum += Integer.parseInt(matrix.get(row).get(i));
                             }
                             System.out.println(sum);
@@ -771,7 +772,7 @@ public class UIController {
         border.setCenter(barchart);
     }
 
-    private String capitalize(String s) {
+    static public String capitalize(String s) {
         String first = s.substring(0, 1).toUpperCase();
         String after = s.substring(1).toLowerCase();
         return first + after;

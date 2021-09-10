@@ -11,9 +11,9 @@ public class EntryManager {
     // pulled entries = [0,newEntriesIndex-1], new Entries = [newEntriesIndex,entries.size()]
     JDBCDatabase jdbc;
     private TableView table;
-    private DataMatrix entries;   // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
-    private DataMatrix deletedEntries;
-    private DataMatrix changedEntries;
+    private final DataMatrix entries;   // enthaelt alle daten vom aktuellen Table (falls gepullt), erste Zeile sind die Spaltennamen
+    private final DataMatrix deletedEntries;
+    private final DataMatrix changedEntries;
     int newEntriesIndex;        // neue eintraege sind ab >= pulledEntries.size()
 
     public EntryManager(JDBCDatabase jdbc) {
@@ -57,8 +57,14 @@ public class EntryManager {
         changedEntries.clear();
         jdbc.getConnection();
 
+        if (table.toString().equals("Aufgabenverteilung")) {
+            System.out.println();
+        }
+
         if (table != null) {
             entries.initializeColumnNames(jdbc.getColumnNames(table.toString()));
+            deletedEntries.initializeColumnNames(jdbc.getColumnNames(table.toString())); // TODO not really necessary
+            changedEntries.initializeColumnNames(jdbc.getColumnNames(table.toString()));
             ArrayList<ArrayList<String>> eintraege = jdbc.getEntries(table.toString());
 
             int row = 1;
@@ -110,22 +116,22 @@ public class EntryManager {
         if (table.editable()) {
             entries.addEmptyEntry(jdbc.getNullables(table.toString()), jdbc.getColumnSize(table.toString()));
             ArrayList<String> columns = jdbc.getColumnNames(table.toString());
-            ArrayList<String> nextAvailableKeys = entries.getNextAvailableKeys(table.iterableKeyValues);
-            ArrayList<String> keys = table.iterableKeyValues;
+            ArrayList<String> nextAvailableKeys = entries.getNextAvailableKeys(table.iterableValues);
+            ArrayList<String> keys = table.iterableValues;
 
             // ID_table keys
             sample.database.DataMatrix inventargegenstand = new DataMatrix();
 
             // get free key value from InventarNr TODO other table too (?)
-            if (!table.iterableKeyValuesTables.isEmpty()) {
+            if (!table.iterableValuesTables.isEmpty()) {
                 jdbc.getConnection();
-                inventargegenstand.initializeColumnNames(jdbc.getColumnNames(table.iterableKeyValuesTables.get(0).toString()));
+                inventargegenstand.initializeColumnNames(jdbc.getColumnNames(table.iterableValuesTables.get(0)));
                 ArrayList<ArrayList<String>> inventargegenstandEintraege = jdbc.getEntries(table.toString());
 
 
                 int row = 1;
-                ArrayList<Boolean> nullables = jdbc.getNullables(table.iterableKeyValuesTables.get(0).toString());
-                for (ArrayList<String> entry : jdbc.getEntries(table.iterableKeyValuesTables.get(0).toString())) {
+                ArrayList<Boolean> nullables = jdbc.getNullables(table.iterableValuesTables.get(0));
+                for (ArrayList<String> entry : jdbc.getEntries(table.iterableValuesTables.get(0))) {
                     inventargegenstand.addEntry(entry, row++);
                     inventargegenstand.markNullables(nullables, row - 1);
                 }
@@ -145,7 +151,7 @@ public class EntryManager {
             entries.fillSysDateValues(table.defaultSysdate, entries.rowSize() - 1);
             // fill next iterable key-value of table
             for (int column = 0; column < columns.size(); column++) {
-                for (int keyIndex = 0; keyIndex < table.iterableKeyValues.size(); keyIndex++) {
+                for (int keyIndex = 0; keyIndex < table.iterableValues.size(); keyIndex++) {
                     if (columns.get(column).equals(keys.get(keyIndex))) {
                         entries.getLatestNodeEntry().get(column).setText(nextAvailableKeys.get(keyIndex));
                         entries.getLatestNodeEntry().get(column).initialVal = nextAvailableKeys.get(keyIndex);

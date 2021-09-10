@@ -2,6 +2,7 @@ package sample.util;
 
 import sample.database.Table;
 import sample.database.TableView;
+import sample.ui.UIController;
 
 import java.util.HashMap;
 
@@ -23,25 +24,25 @@ public class TableCreator {
                 case "MASCHINE": // TODO checkmarker -  bis hier funktionierts
                     table.preFillTables.add("STANDORT");
                     table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValues.add("SN");
-                    table.iterableKeyValues.add("INVENTARNR");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
+                    table.iterableValues.add("SN");
+                    table.iterableValues.add("INVENTARNR");
+                    table.iterableValuesTables.add("INVENTARGEGENSTAND");
                     table.connectedTables.add("GELAGERT_IN");
                     break;
                 case "LAGERSILO":
                     table.preFillTables.add("STANDORT");
                     table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValues.add("SILONR");
-                    table.iterableKeyValues.add("INVENTARNR");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
+                    table.iterableValues.add("SILONR");
+                    table.iterableValues.add("INVENTARNR");
+                    table.iterableValuesTables.add("INVENTARGEGENSTAND");
                     table.decimalValues.add("KAPAZITAET");
                     table.decimalValues.add("FUELLMENGE");
                     break;
                 case "VORRAETE":
                     table.preFillTables.add("STANDORT");
                     table.preFillTables.add("INVENTARGEGENSTAND");
-                    table.iterableKeyValues.add("INVENTARNR");
-                    table.iterableKeyValuesTables.add("INVENTARGEGENSTAND");
+                    table.iterableValues.add("INVENTARNR");
+                    table.iterableValuesTables.add("INVENTARGEGENSTAND");
                     table.connectedTables.add("GELAGERT_IN");
                     table.correspondingConnectedTables.add("STANDORT");
                     break;
@@ -53,7 +54,7 @@ public class TableCreator {
                 case "PERSONAL":
                     table.preFillTables.add("STANDORT");
                     table.defaultSysdate.add("EINSTELLUNGSDATUM");
-                    table.iterableKeyValues.add("MITARBEITERNR");
+                    table.iterableValues.add("MITARBEITERNR");
                     table.decimalValues.add("GEHALT");
                     table.connectedTables.add("PERSONAL");
                     table.correspondingConnectedTables.add("SEX");
@@ -64,10 +65,10 @@ public class TableCreator {
                     table.correspondingConnectedTables.add("PERSONAL");
                     break;
                 case "SEX":
-                    table.iterableKeyValues.add("SEXNR");
+                    table.iterableValues.add("SEXNR");
                     break;
                 case "FELD":
-                    table.iterableKeyValues.add("FELDNR");
+                    table.iterableValues.add("FELDNR");
                     table.connectedTables.add("DURCHGEFUEHRT_AUF");
                     table.correspondingConnectedTables.add("AUFGABE");
                     break;
@@ -79,7 +80,7 @@ public class TableCreator {
                     table.preFillTables.add("SONSTIGES");
                     table.defaultSysdate.add("ERSTELLDATUM");
                     table.decimalValues.add("BETRAG");
-                    table.iterableKeyValues.add("AUFGABENNR");
+                    table.iterableValues.add("AUFGABENNR");
                     table.connectedTables.add("BEINHALTET");
                     table.connectedTables.add("DURCHGEFUEHRT_AUF");
                     table.connectedTables.add("PARTNER_BEARBEITET");
@@ -89,7 +90,7 @@ public class TableCreator {
 
                     break;
                 case "KOSTENSTELLE":
-                    table.iterableKeyValues.add("Kostenstelle");
+                    table.iterableValues.add("Kostenstelle");
                     break;
                 case "ZUSTAND":
                     break;
@@ -129,9 +130,8 @@ public class TableCreator {
 
         }
 
-        for (int i = 22; i < 22+18; i++) { //views
+        for (int i = 22; i < Table.values().length; i++) { //views
             TableView table = new TableView(Table.values()[i].toString(), false);
-            tableMap.put(table.toString(), table);
 
             switch (table.toString()) { //todo überlegen welche diagramme für welche views relevant sind
                 case "AUFGABENBEREICHE":
@@ -141,8 +141,7 @@ public class TableCreator {
                     table.connectedTables.add("BEINHALTET");
                     table.correspondingConnectedTables.add("AUFGABE");
                     break;
-                case"LAGERSILOLISTE":
-                    //table.displayButtons.add("BARCHART");
+                case "LAGERSILOLISTE":
                     break;
                 case "FELDERLISTE":
                     table.displayButtons.add("BARCHART");
@@ -168,7 +167,19 @@ public class TableCreator {
                     table.graphicDisplayStrings.add("");
                     table.graphicDisplayStrings.add("");
                     break;
+                case "Aufgabenverteilung":
+                    table = new TableView(UIController.capitalize(table.toString()), false); // database name ajdustment
+                    break;
+                case "FINANZUEBERSICHT":
+                    table.displayButtons.add("BARCHART");
+                    table.displayButtons.add("PIECHART");
+                    table.graphicDisplayStrings.add("Aufgaben Beträge");
+                    table.graphicDisplayStrings.add("AUFGABENNR");
+                    table.graphicDisplayStrings.add("BETRAG");
+                    table.graphicDisplayStrings.add("Aufgabenr");
+                    break;
             }
+            tableMap.put(table.toString(), table);
         }
         //        for (java.util.Map.Entry<String, TableView> entry : map.entrySet()) {
 //            System.out.println(entry.getKey() + " " + entry.getValue().editable());

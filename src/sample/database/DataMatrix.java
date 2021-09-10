@@ -7,7 +7,6 @@ import java.util.ArrayList;
 
 public class DataMatrix {
     private ArrayList<ArrayList<DataTextFieldNode>> matrix; // column-titles are row: 0
-    private ComboBox<String> comboBox;
     private boolean editable = true;
 
     // TODO Views nicht editierbar
@@ -71,7 +70,7 @@ public class DataMatrix {
         int col = 0;
         for (String s : arr) {
             DataTextFieldNode tf = new DataTextFieldNode(col++, row);
-            for (int i = 0; i < matrix.get(0).size(); i++) {
+            for (int i = 0; i < matrix.get(0).size()-1; i++) { // not all matrixes have initialized .get(0) (deletedEntries, changedEntries)
                 if (matrix.get(0).get(i).getText().equals("FERTIGGESTELLT")) {
                     if (s.equals("0")) {
                         s = "nein";
@@ -126,7 +125,7 @@ public class DataMatrix {
         String result = "";
         for (ArrayList<DataTextFieldNode> arr : matrix) {
             for (DataTextFieldNode tf : arr) {
-                if (tf.getCol() == col && tf.getRow() == row) return tf.getText();
+                if (tf.getCol() == col && tf.getRow() == row) return tf.getText(); //TODO unecessary, just get via matrix
             }
         }
         return result;
@@ -292,7 +291,7 @@ public class DataMatrix {
 
 
     public void setComboBox(ComboBox comboBox) {
-        this.comboBox = comboBox;
+        //this.comboBox = comboBox;
     }
 
     public void setTextWithCB(ComboBox<String> comboBox) {
