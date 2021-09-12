@@ -57,7 +57,9 @@ public class TableCreator {
                     table.iterableValues.add("MITARBEITERNR");
                     table.decimalValues.add("GEHALT");
                     table.connectedTables.add("PERSONAL");
+                    table.connectedTables.add("PERSONAL_BEARBEITET");
                     table.correspondingConnectedTables.add("SEX");
+                    table.correspondingConnectedTables.add("AUFGABE");
                     break;
                 case "ABWESENHEIT":
                     table.defaultSysdate.add("ANFANG");
@@ -84,9 +86,11 @@ public class TableCreator {
                     table.connectedTables.add("BEINHALTET");
                     table.connectedTables.add("DURCHGEFUEHRT_AUF");
                     table.connectedTables.add("PARTNER_BEARBEITET");
+                    table.connectedTables.add("PERSONAL_BEARBEITET");
                     table.correspondingConnectedTables.add("INVENTARLISTE");
                     table.correspondingConnectedTables.add("FELD");
                     table.correspondingConnectedTables.add("GESCHAEFTSPARTNER");
+                    table.correspondingConnectedTables.add("PERSONAL");
 
                     break;
                 case "KOSTENSTELLE":

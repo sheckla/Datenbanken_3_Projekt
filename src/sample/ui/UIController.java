@@ -32,12 +32,15 @@ import java.util.*;
 // TODO nur bestimmte daten erlauben (int für nummern, zeichen für Strings etc)
 
 public class UIController {
+    // TODO visually disconnect foreign key tables
     private final boolean DEVELOPER_MODE = false; // shows all tables in database in top navigation
     private BorderPane border; // main UI element
     private Text dataTitle = new Text("");
     private final Label updatedTime = new Label("");
     private final Label currentStatement = new Label("");
     private TextField searchField = new TextField("");
+
+    private final int topButtonWidth = 150;
 
 
     private ListView<GridPane> dataMatrixListView = new ListView<>();
@@ -89,6 +92,8 @@ public class UIController {
             changeToTable(table);
         }
     }
+
+
 
     // initializes all class variables and parsed table
     private void changeToTable(TableView table) {
@@ -172,7 +177,7 @@ public class UIController {
             hbox.setStyle("-fx-background-color: #FFFFFF;");
 
             Button buttonAufgabe = new Button("Aufgaben");
-            buttonAufgabe.setPrefSize(100, 20);
+            buttonAufgabe.setPrefSize(topButtonWidth, 20);
             buttonAufgabe.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -181,7 +186,7 @@ public class UIController {
             });
 
             Button buttonPersonal = new Button("Personal");
-            buttonPersonal.setPrefSize(100, 20);
+            buttonPersonal.setPrefSize(topButtonWidth, 20);
             buttonPersonal.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -190,7 +195,7 @@ public class UIController {
             });
 
             Button buttonGeschaeftspartner = new Button("Geschaeftspartner");
-            buttonGeschaeftspartner.setPrefSize(100, 20);
+            buttonGeschaeftspartner.setPrefSize(topButtonWidth, 20);
             buttonGeschaeftspartner.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -199,7 +204,7 @@ public class UIController {
             });
 
             Button buttonFeld = new Button("Feld");
-            buttonFeld.setPrefSize(100, 20);
+            buttonFeld.setPrefSize(topButtonWidth, 20);
             buttonFeld.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -208,7 +213,7 @@ public class UIController {
             });
 
             Button buttonKostenstelle = new Button("Kostenstelle");
-            buttonKostenstelle.setPrefSize(100, 20);
+            buttonKostenstelle.setPrefSize(topButtonWidth, 20);
             buttonKostenstelle.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -217,7 +222,7 @@ public class UIController {
             });
 
             Button buttonSex = new Button("Geschlecht");
-            buttonSex.setPrefSize(100, 20);
+            buttonSex.setPrefSize(topButtonWidth, 20);
             buttonSex.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -226,7 +231,7 @@ public class UIController {
             });
 
             Button buttonStandort = new Button("Standort");
-            buttonStandort.setPrefSize(100, 20);
+            buttonStandort.setPrefSize(topButtonWidth, 20);
             buttonStandort.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -240,6 +245,7 @@ public class UIController {
 
             String[] inventar = {"Vorräte", "Lagersilo", "Maschine"};
             ComboBox inventarComboBox = new ComboBox(FXCollections.observableArrayList(inventar));
+            inventarComboBox.setPrefSize(topButtonWidth + 30, 20);
             inventarComboBox.valueProperty().addListener(new ChangeListener() {
                 @Override
                 public void changed(ObservableValue observable, Object oldValue, Object newValue) {
@@ -263,7 +269,7 @@ public class UIController {
             hboxConnected.setStyle("-fx-background-color: #FFFFFF;");
 
             Button buttonBeinhaltet = new Button("Beinhaltet");
-            buttonBeinhaltet.setPrefSize(100, 20);
+            buttonBeinhaltet.setPrefSize(topButtonWidth, 20);
             buttonBeinhaltet.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -272,7 +278,7 @@ public class UIController {
             });
 
             Button buttonDurchgefuehrt = new Button("Durchgeführt auf");
-            buttonDurchgefuehrt.setPrefSize(100, 20);
+            buttonDurchgefuehrt.setPrefSize(topButtonWidth, 20);
             buttonDurchgefuehrt.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -281,7 +287,7 @@ public class UIController {
             });
 
             Button buttonGelagert = new Button("Gelagert in");
-            buttonGelagert.setPrefSize(100, 20);
+            buttonGelagert.setPrefSize(topButtonWidth, 20);
             buttonGelagert.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -290,7 +296,7 @@ public class UIController {
             });
 
             Button buttonPartner = new Button("Partner bearbeitet");
-            buttonPartner.setPrefSize(100, 20);
+            buttonPartner.setPrefSize(topButtonWidth, 20);
             buttonPartner.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -299,7 +305,7 @@ public class UIController {
             });
 
             Button buttonPersonalBearbeitet = new Button("Personal bearbeitet");
-            buttonPersonalBearbeitet.setPrefSize(100, 20);
+            buttonPersonalBearbeitet.setPrefSize(topButtonWidth, 20);
             buttonPersonalBearbeitet.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
@@ -441,11 +447,12 @@ public class UIController {
     private VBox createRightNavigation() {
         VBox vbox = null;
         // Views
+        // TODO visually disconnect foreign key tables from M:N-Tables for user comfort
         if (!currentTable.editable() && !currentTable.displayButtons.isEmpty()) {
             vbox = new VBox();
             vbox.setPadding(new Insets(10)); // Set all sides to 10
             vbox.setSpacing(8);              // Gap between nodes
-            // TODO Buttons groesse anpassen
+            // TODO adjust button size
             Text title = new Text("View");
             title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
             vbox.getChildren().add(title);
@@ -510,25 +517,28 @@ public class UIController {
                         buttonText = "Mitarbeiter auswählen";
                         break;
                     case "BEINHALTET":
-                        buttonText = "Beinhaltet Inventargegenstand";
+                        buttonText = "Aufgabe beinhaltet Inventargegenstand";
                         break;
                     case "DURCHGEFUEHRT_AUF":
-                        buttonText = "Durchgeführt auf Feld";
+                        buttonText = "Aufgabe durchgeführt auf Feld";
                         break;
                     case "PARTNER_BEARBEITET":
-                        buttonText = "Partner bearbeitet";
+                        buttonText = "Geschäftspartner bearbeitet Aufgabe";
                         break;
                     case "GELAGERT_IN":
-                        buttonText = "Gelagert in";
+                        buttonText = "Vorrat gelagert in Standort";
                         break;
                     case "PERSONAL":
-                        buttonText = "Geschlecht";
+                        buttonText = "Geschlecht auswählen";
+                    case "PERSONAL_BEARBEITET":
+                        buttonText = "Personal bearbeitet Aufgabe";
+                        break;
                     default:
                         buttonText = capitalize(buttonText);
                         break;
                 }
                 Button currentButton = new Button(buttonText);
-                currentButton.setPrefSize(150, 20);
+                currentButton.setPrefSize(250, 40);
                 currentButton.setOnAction(new EventHandler<ActionEvent>() {
                     @Override
                     public void handle(ActionEvent event) {
@@ -614,8 +624,22 @@ public class UIController {
         buttonAktualisieren.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                entryManager.pullData();
-                refreshDatabaseView();
+                // centralize alert dialog in own method, occurs in changeTableDialog too
+                if (entryManager.isChanged()) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Änderungen verwerfen?");
+                    alert.setContentText("Sie haben noch ungespeicherte Änderungen.\n" +
+                            "Möchten Sie diese verwerfen und zur ausgewählten Tabelle wechseln?");
+                    ButtonType okButton = new ButtonType("Ja", ButtonBar.ButtonData.YES);
+                    ButtonType noButton = new ButtonType("Nein", ButtonBar.ButtonData.NO);
+                    alert.getButtonTypes().setAll(okButton, noButton);
+                    alert.showAndWait().ifPresent(type -> {
+                        if (type == okButton) {
+                            entryManager.pullData();
+                            refreshDatabaseView();
+                        }
+                    });
+                }
             }
         });
 

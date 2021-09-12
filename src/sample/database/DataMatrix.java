@@ -208,7 +208,7 @@ public class DataMatrix {
                         keyValues.add(0);
                         for (int row = 1; row < matrix.size(); row++) {
                             String text = matrix.get(row).get(column).getText();
-                            if (text.equals("")) text = "0";
+                            if (text.equals("") || text.equals("ja")) text = "0";
                             int val = Integer.parseInt(text);
                             if (keyValues.get(keyIndex) <= val) keyValues.set(keyIndex, val);
                         }
