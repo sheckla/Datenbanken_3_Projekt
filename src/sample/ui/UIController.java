@@ -168,6 +168,7 @@ public class UIController {
     }
 
     private VBox createTopNavigation() {
+        // TODO adjust top nav-button strings for user-friendliness
         VBox vBox = new VBox();
         vBox.setSpacing(-10);
         if (!DEVELOPER_MODE) {
